@@ -1,0 +1,1 @@
+./bin/6.bin: This should go inside your out.txt file
