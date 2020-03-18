@@ -1,0 +1,18 @@
+Pre-reqs:
+    -myfork
+    -mydup
+Make sure you understand the code there.
+
+For this task, you have to read from and 
+input file and redirect to another file 
+using stin and stout, respectively.
+
+stin ---> input
+stout ---> out
+
+stin.txt is already created. Filled with:
+Onceuponatime....
+
+----------------------------
+Note: how to make scanf read from a file instead of stdin?
+Answer: you can't. you have to use fscanf
