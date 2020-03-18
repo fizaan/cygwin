@@ -35,29 +35,33 @@ int main(int argc, char * argv[]) {
     check(sender);
 
     if(sender == 0) { //child (sender) writes to pipe
+        //first close unwanted read end of pipe:
+        check(close(p[r]));
         //notice the white space. We need it for scanf.
         char hi[] = "Hithere ";
         check(close(STDOUT_FILENO));
         check(dup(p[wR]));
         printf("%d:%s",getpid(),hi);
         fflush(stdout);
-        
-        check(close(p[r]));
+        //close pipe's write end after use
         check(close(p[wR]));
         exit(0);
     }
 
     //in the parent (receiver) reads from pipe
     //and prints to parent stdout
+
+    //first close unwated write end of pipe:
+    check(close(p[wR]));
     char received[20];
     check(close(STDIN_FILENO));
     check(dup(p[r]));
     scanf("%s",received);
     fflush(stdin);
     printf("1: Parent[%d] received: %s\n", getpid(), received); 
-
+    //close pipe's read end after use
     check(close(p[r]));
-    check(close(p[wR]));
+    
     wait(NULL);
     return 0;
 
