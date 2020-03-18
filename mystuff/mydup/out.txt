@@ -1,1 +1,2 @@
-./bin/6.bin: This should go inside your out.txt file
+This should go inside your out.txt file
+Your FD is now standard OUT [1]: 1
