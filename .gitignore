@@ -2,5 +2,6 @@
 *.out
 !.gitignore
 Assembler
+usr/
 *.zip
 *.tar*
