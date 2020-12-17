@@ -14,3 +14,26 @@ subroutine or copied by the fcntl, dup, and dup2 subroutines.
 ls /proc/self/fd/
 0  1  2  3
 
+For the gb assembler: 
+git clone git@github.com:ulrikdamm/Assembler.git
+cd Assembler
+swift build -c release
+./.build/release/Assembler input.asm
+
+For swift install or download from link:
+Open cygwin terminal as Admin:
+>wget -q https://github.com/tinysun212/swift-windows/releases/download/swift-4.0.3%2Bcygwin.20180212/swift-4.0.3.cygwin.20180212-bin.tar.gz
+copy the tar to C:\Program Files (x86)\swift
+>cd /cygdrive/c/Users/Alifa/Desktop/cygwin64-workspace
+>tar zxf swift-4.0.3.cygwin.20180212-bin.tar.gz
+>export PATH=$PATH:$(pwd)/usr/bin
+>swift --version
+
+Getting error:
+C:/Program Files (x86)/swift/usr/bin/swift.exe: error while loading shared libraries: cygedit-0.dll: 
+cannot open shared object file: No such file or directory
+
+Reported:
+https://github.com/tinysun212/swift-windows/issues/18
+
+
