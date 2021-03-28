@@ -2,7 +2,7 @@ www.ostep.org
 www.cygwin.com
 
 cygwin 64 install and workspace dir:
-    - C:\Users\Alifa\cygwin64
+    - C:\cygwin64
     - C:\Users\Alifa\Desktop\cygwin64-workspace
 
 
