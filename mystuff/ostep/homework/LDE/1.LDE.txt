@@ -1,0 +1,37 @@
+1. Computer Startup:
+	MotherBoard
+		- Take data from BIOS
+		- BIOS copies firmware to RAM
+		- CPU IP points to first firmware instruction in RAM
+		- CPU executes instruction
+			- Instruction says to read bootloader from HD
+				and copy it to RAM.
+			- Bootloader chooses the operating system to run
+				which is then loaded into memory
+			- CPU IP then points to the OS code and runs it.
+		Hardware.switch(kernelmode);
+		cpu.execute(OS);
+1. CPU is now running OS code.
+	- How can CPU run other user programs?
+	
+	When a new program comes in:
+	- OS:
+		new Process p();
+		os.addNewProcess(p);
+		os.loadprocess(p)
+			HardDisk.loadProcessBinaryToMemory(p);
+		Hardware.switch(usermode);
+		os.changeCPUIP();
+			cpu.fetch(IP);
+			cpu.incrementIP();
+			cpu.execute();
+				process runs until HALT or exit
+				..
+				..
+			cpu.returnControlOS();
+		Hardware.switch(kernelmode);
+		os.destroyProcess(p);
+		os.removeProcess(p);
+	
+	
+

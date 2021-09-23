@@ -1,0 +1,127 @@
+Limited Direct Execution (LDE)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. System Calls (cooperative switching from user to kernel mode)
+
+Note: The book is treating sys calls as trap routines/interuupts which means that
+its the HARDWARE's (qemu/bochs) job to save a FEW of the callee's registers before the
+trap routine and restoring them after the trap routine. This is done automatically/implicitly
+by the HARDWARE/CPU.
+
+User Mode				Hardware				OS (Kernel mode)
+-----------------------------		----------------------			----------------------
+(1) process: p0	 
+    
+    Is CPU using p0's 
+    private stack? I believe yes.
+    
+    system call(call number)	
+    "trap into OS" - pg 5			
+					(2) save p0's regs onto
+					the p0's stack.
+					
+					(2a) i.e, in (2) the user 
+					registers of the running process 
+					are implicitly saved by the hardware, 
+					using the kernel stack of that 
+					process. - pg 10) In x86, The following
+					are pused onto p0's private stack
+					(in this exact order).
+						- ss	(user->kernel)
+						- esp 	(user->kernel)	
+						- eflags		
+						- cs
+						- eip
+						- INT error code
+						
+					lookup trap table(call number)
+					
+					switch to Kernel mode ?
+					
+					jump to trap handler			
+										(3) The kernel can now "decide" if
+										it wants to save/push more of p0's
+										registers onto p0's stack.
+											push ebp
+											push edi 
+											push esi 
+											push edx 
+											push ecx 
+											push ebx 
+											push eax
+											
+										do I switch to kernel's own stack here ??
+										
+										handle trap routine
+										e.g IO/DISK/MEMORY
+										
+										(the OS here can, if it wants,
+										decide to switch to another process. but I
+										assume it wants to let p0 continue so there
+										is no context-switch happening...)
+										
+										do I switch to p0's stack here ??
+										
+										if we saved more registers (above), we pop them
+										in reverse order as above.
+											pop eax
+											pop ebx 
+											pop ecx 
+											pop edx 
+											pop esi 
+											pop edi 
+											pop ebp
+										
+										return from trap
+										
+										
+					(4) restor p0's regs from
+					p0's private kernel stack
+					(ss, esp, eflags, cs, and eip)
+					
+					jump to p0's PC (should be 
+					instruction right after trap 
+					(system call).
+					
+(5) p0 resumes at its PC
+					
+~~~~~~~~~~~~~~~~~~
+Notes on sys calls
+~~~~~~~~~~~~~~~~~~
+
+(1) To specify the exact system call, a system-call number is usually assigned 
+to each system call. The user code is thus responsible for placing the desired 
+system-call number in a register or at a specified location on the stack; the OS, 
+when handling the system call inside the trap handler, examines this number, ensures 
+it is valid, and, if it is, executes the corresponding code. - pg 6
+
+(2) and (4) The hardware needs to be a bit careful when executing a trap, in that it
+must make sure to save enough of the caller’s registers in order to be able
+to return correctly when the OS issues the return-from-trap instruction. On x86, 
+for example, the processor will push the program counter, flags, and a few other 
+registers onto a 'per-process kernel stack'; the return-fromtrap will pop these 
+values off the stack and resume execution of the usermode program - pg 4	
+
+How does the trap know which code to run inside the OS? Clearly, the calling process
+can’t specify an address to jump to (as you would when making a procedure call); 
+doing so would allow programs to jump anywhere into the kernel which clearly is a 
+Very Bad Idea. Thus the kernel must carefully control what code executes upon a trap.
+The kernel does so by setting up a trap table at boot time. - pg 4
+
+~~~~~~~~~~~~~~~~~~~~~
+My question on reddit
+~~~~~~~~~~~~~~~~~~~~~
+
+Is it safe to say that sys calls and interrupts are both handled by trap routines and 
+we as OS developers don't have to do anything in terms of saving the *callee registers 
+before/after the trap routine is executed because the HARDWARE will do this for us 
+implicitly? This is what I understand from the diagram on pg 5. 
+
+Note: Above assumes we are not interested in doing a context-switch after the trap routine finishes, in 
+which case I understand that the OS needs to explicitly save the registers.
+
+* I meant to type caller's
+
+I was expecting an answer of YES - it is safe to do that but this is what I got:
+
+

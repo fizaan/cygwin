@@ -1,0 +1,201 @@
+Open dos/cygwin/mygwin. I prefer dos.
+
+Working dir (warning: this may change!)
+C:\Users\Alifa\Desktop\ostep.org
+
+dos>cd C:\Users\Alifa\Desktop\ostep.org
+
+dos>git clone https://github.com/remzi-arpacidusseau/ostep-homework.git
+
+C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-intro>python -
+Python 3.9.1 (tags/v3.9.1:1e5d33e, Dec  7 2020, 17:08:21) [MSC v.1927 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> exit()
+
+C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-intro>python process-run.py -l 5:100 -c
+Time        PID: 0           CPU           IOs
+  1        RUN:cpu             1
+  2        RUN:cpu             1
+  3        RUN:cpu             1
+  4        RUN:cpu             1
+  5        RUN:cpu             1
+  
+-------------------------------------------------------------------------------------------
+HOMEWORK: PROCESS STATES
+-------------------------------------------------------------------------------------------
+
+Homework 'process-run.py'
+ 
+Note: You need a comma between processes and no spaces! Also note that the DEFAULT IO time is 5 ticks.
+
+Here are the defaults. I know this because I tested it while solving below questions.
+-L 5
+-S SWITCH_ON_IO
+-I IO_RUN_LATER
+ 
+Q1. I got this right.
+ 
+C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-intro>python process-run.py -l 5:100,5:100 -c -p
+Time        PID: 0        PID: 1           CPU           IOs
+  1        RUN:cpu         READY             1
+  2        RUN:cpu         READY             1
+  3        RUN:cpu         READY             1
+  4        RUN:cpu         READY             1
+  5        RUN:cpu         READY             1
+  6           DONE       RUN:cpu             1
+  7           DONE       RUN:cpu             1
+  8           DONE       RUN:cpu             1
+  9           DONE       RUN:cpu             1
+ 10           DONE       RUN:cpu             1
+
+Stats: Total Time 10
+Stats: CPU Busy 10 (100.00%)
+Stats: IO Busy  0 (0.00%)
+
+
+Q2. I got this right - but only with the right polices :-)
+
+C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-intro>python process-run.py -l 4:100,1:0 -c -p -L 0 -S SWITCH_ON_IO -I IO_RUN_LATER
+Time        PID: 0        PID: 1           CPU           IOs
+  1        RUN:cpu         READY             1
+  2        RUN:cpu         READY             1
+  3        RUN:cpu         READY             1
+  4        RUN:cpu         READY             1
+  5           DONE        RUN:io             1
+  6*          DONE   RUN:io_done             1
+
+Stats: Total Time 6
+Stats: CPU Busy 6 (100.00%)
+Stats: IO Busy  0 (0.00%)
+
+Q3. I got this right - but only with the right polices :-)
+
+C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-intro>python process-run.py -l 1:0,4:100 -c -p -L 0 -S SWITCH_ON_IO -I IO_RUN_LATER
+Time        PID: 0        PID: 1           CPU           IOs
+  1         RUN:io         READY             1
+  2*         READY       RUN:cpu             1
+  3          READY       RUN:cpu             1
+  4          READY       RUN:cpu             1
+  5          READY       RUN:cpu             1
+  6    RUN:io_done          DONE             1
+
+Stats: Total Time 6
+Stats: CPU Busy 6 (100.00%)
+Stats: IO Busy  0 (0.00%)
+
+::::::::::::::::::::::::::::::::::::::::::::::
+Note: for 2 and 3 you could also do:
+
+python process-run.py -l 4:100,1:0 -c -p -L 0
+python process-run.py -l 1:0,4:100 -c -p -L 0
+
+And you will still be correct. Total time is 6.
+::::::::::::::::::::::::::::::::::::::::::::::
+
+Note that they assume that the IO instrctions are executed by ANOTHER device
+and not by the CPU. I know this because of the output of below. You can clearly
+see that IOs are not handled by the CPU but instead by a foreign device. But...is
+this how it's supposed to be? A print call is handled by the file system WHILE the CPU
+is running other instructions? Hmm.
+
+C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-intro>python process-run.py -l 1:0,4:100 -c -p
+Time        PID: 0        PID: 1           CPU           IOs
+  1         RUN:io         READY             1
+  2        WAITING       RUN:cpu             1             1
+  3        WAITING       RUN:cpu             1             1
+  4        WAITING       RUN:cpu             1             1
+  5        WAITING       RUN:cpu             1             1
+  6        WAITING          DONE                           1
+  7*   RUN:io_done          DONE             1
+
+Stats: Total Time 7
+Stats: CPU Busy 6 (85.71%)
+Stats: IO Busy  5 (71.43%)
+
+[See handwritten note on pg 4]
+This is what I thought the output should be if IO is ALSO handled by the CPU:
+
+Time        PID: 0        PID: 1           CPU           IOs
+  1         RUN:io       READY               1
+  2        WAITING       RUN:cpu             1             
+  3        WAITING       RUN:cpu             1             
+  4        WAITING       RUN:cpu             1             
+  5        WAITING       RUN:cpu             1             
+  6        RUN:CPU       DONE                              1
+  7        RUN:CPU                                         1
+  8        RUN:CPU                                         1
+  9        RUN:CPU                                         1
+  10       RUN:CPU                                         1
+  11*      RUN:io_done   DONE                1
+
+
+  Q4. I got this right! Did you notice SWITCH_ON_END is like saying  that the IO is ALSO handled by the CPU 
+  and not by some foreign IO device. Hence why they can't run simoultaneously.
+
+  C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-intro>python process-run.py -l 1:0,4:100 -c -p -S SWITCH_ON_END
+Time        PID: 0        PID: 1           CPU           IOs
+  1         RUN:io         READY             1
+  2        WAITING         READY                           1
+  3        WAITING         READY                           1
+  4        WAITING         READY                           1
+  5        WAITING         READY                           1
+  6        WAITING         READY                           1
+  7*   RUN:io_done         READY             1
+  8           DONE       RUN:cpu             1
+  9           DONE       RUN:cpu             1
+ 10           DONE       RUN:cpu             1
+ 11           DONE       RUN:cpu             1
+
+Stats: Total Time 11
+Stats: CPU Busy 6 (54.55%)
+Stats: IO Busy  5 (45.45%)
+
+Q5. I got this right. Note that default is SWITCH_ON_IO
+
+C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-intro>python process-run.py -l 1:0,4:100 -c -p
+Time        PID: 0        PID: 1           CPU           IOs
+  1         RUN:io         READY             1
+  2        WAITING       RUN:cpu             1             1
+  3        WAITING       RUN:cpu             1             1
+  4        WAITING       RUN:cpu             1             1
+  5        WAITING       RUN:cpu             1             1
+  6        WAITING          DONE                           1
+  7*   RUN:io_done          DONE             1
+
+Stats: Total Time 7
+Stats: CPU Busy 6 (85.71%)
+Stats: IO Busy  5 (71.43%)
+
+Q6. I got this one wrong :( but I understand why. I implemented the IO_RUN_IMMEDIATE policy
+in my notes for this question - see pg 6 of hand notes. I should have done that for Q7.
+
+- python process-run.py -l 3:0,5:100,5:100,5:100 -c -p
+
+Q7. Well, if I take the answer I did for Q6, then I got this one right :p
+
+Q8. This quesion is a TODO. I have not done it. (What the heck is SEED)?
+
+SEED - "this gives you way to create a bunch of different jobs randomly"
+
+I thought by this he meant "a random NUMBER of jobs/processes will be created based on the SEED"
+I was wrong. It doesn't create random NUMBER of jobs. It just uses the jobs provided in the -l option
+and runs CPU or IO instructions based on some calculation on the "chance" variable
+supplied 
+
+E.g: below are 2 processes and the chance an instruction will be a CPU for the first process 
+(p0) is 38% * (some seed calculation) while 47% * (some seed calculation) for the second process (p1).
+    
+    -s 3 -l 3:28,3:47
+
+
+I guess I won't do Q8 since it is very random
+
+Take aways from this homework
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The chapter says that when p0 calls IO, p1 will start running; p1 and p0's 
+IO (trap routine) will run concurrently! I can only imagine this happening if 
+the IO instructions are running on a SEPARATE/FOREGIGN device and NOT ON THE CPU.
+Otherwise how can p1 start running when CPU is running the trap/io instructions?
+It's impossible.
+

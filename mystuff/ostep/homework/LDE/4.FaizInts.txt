@@ -1,0 +1,52 @@
+~~~~~~~~~~~~~~~~~~~~~~
+Context-switch SUMMARY
+~~~~~~~~~~~~~~~~~~~~~~
+
+OS (kernel)				HARDWARE					Process (kernelT/taskA/B/C/D)
+-----------------------			-----------------------
+1)Bootup
+IDT
+
+kernel is running
+while(1);
+
+You just pressed and key (INT)
+					2)Saves state of Kernel (eflags, cs, and eip)
+					on CURRENT process's stack
+
+					trap lookup for this INT
+
+					jump to trap
+					
+
+3)ISR: Handle trap
+
+OS decides to save more
+registers of CURRENT process
+onto CURRENT processes stack
+ebp, edi, esi, edx, ecx, 
+ebx, eax, esp 
+
+call cKBINTHandler which
+gets the next task (among other
+important stuff) and return's 
+this next task's stack pointer 
+(esp)
+
+now OS will SWITCH STACKS from 
+current processe's stack to next 
+process's stack
+
+And pop off the new values into 
+the kernel registers: eax, ebx, 
+ecx, edx, esi, edi, ebp
+
+finally..return from trap		
+					4) The hardware is back in charge now and 
+					pops off the remaining values off 
+					of the NEW stack to the kernel registers
+					eip, cs, eflags
+					
+					Hardware then jumps to new EIP which 
+					is now the next processes' EIP				
+											5) kernelT is now running :)

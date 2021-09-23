@@ -1,0 +1,8 @@
+- fork.py sim wasn't that interesting. I understand the concept but didn't play around with it at all. Just read the readme
+- generator.py sim was interesting but I didn't use it. I read the readme and seems simple enough.
+
+- Ran the following and got this in dos LOL. Guess I need to run in cygwin terminal
+
+C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-api>python generator.py -A "fork b,1 {} wait"
+'cat' is not recognized as an internal or external command,
+operable program or batch file.

@@ -1,0 +1,64 @@
+How intel handles interrupts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Source: https://alex.dzyoba.com/blog/os-interrupts
+
+When an interrupt occurred in userspace
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+User mode			HARDWARE/CPU					KERNEL/OS
+-----------------------		------------------				----------------------
+1)process: p0
+  state: running
+  p0 has its own stack
+  
+  p0 calls trap
+  routine which
+  triggers an INT
+				2) temporarily saves SS, ESP, 
+				EFLAGS, CS and EIP
+				
+				2a) switch from p0's ESP to kernel's ESP
+				so from here on we are using the kernel's stack
+				
+				pushes saved SS, ESP, EFLAGS, CS, and EIP to 
+				kernel stack
+				
+				pushes error code (if applicable)
+				
+				... (some other stuff)
+				
+				... (some other stuff)
+				
+				lookup trap table(call number)
+				
+				jump to trap handler (ISR)			
+										3) PUSHA
+										
+										   Do the trap routine
+										   
+										   POPA
+										   
+										   iret
+				
+				
+				4) pop S, ESP, EFLAGS, CS, and EIP
+				   from the kernel's stack (..this will
+				   also switch from kernel stack to 
+				   p0's stack).
+				   
+				   jump to p0's PC (should be 
+				   instruction right after trap 
+				  (system call).
+				  
+5) p0 resumes at its PC
+
+
+
+Notes
+~~~~~
+
+2a) If an interrupt occurred in kernel space, CPU will not switch stacks, 
+meaning that the ISR uses the stack of the interrupted procedure (p0). 
+
