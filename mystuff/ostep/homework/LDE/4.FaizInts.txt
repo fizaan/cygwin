@@ -10,7 +10,8 @@ IDT
 kernel is running
 while(1);
 
-You just pressed and key (INT)
+You just pressed a key 
+triggering an interrupt (INT)
 					2)Saves state of Kernel (eflags, cs, and eip)
 					on CURRENT process's stack
 
@@ -35,7 +36,9 @@ this next task's stack pointer
 
 now OS will SWITCH STACKS from 
 current processe's stack to next 
-process's stack
+process's stack (by updating esp
+to what was returned by 
+cKBINTHandler)
 
 And pop off the new values into 
 the kernel registers: eax, ebx, 
