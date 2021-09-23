@@ -32,6 +32,57 @@
 		Hardware.switch(kernelmode);
 		os.destroyProcess(p);
 		os.removeProcess(p);
+		
+
+2. Algorithm: This assumes that the OS has booted up, trap table is set and identified and
+   that we have a bunch of processes already scheduled and in the 'ready' state (i.e. ready 
+   to be run)
+   
+   while(true) { // true? because OS is always running (I assume)
+   
+   	listen for interrupts
+   	
+   	if(interrupt occured)
+   	
+   	give control to hardware
+   	
+   	hardware pushes some reg onto current stack
+   	
+   	hardware looks up trap table
+   	
+   	hardware find the correct trap routine
+   	
+   	hardware instruction eip to jump to trap
+   	
+   	os takes control
+   	
+   	ISR is now running
+   	
+   	ISR pushes more General purpose regs onto stack
+   	
+   	ISR calls KBINTHandler()
+   	
+   	KBINTHandler determines next process to run
+   	(among other things) and return's that processes'
+   	esp
+   	
+   	ISR updates (switches) esp and thereby switches to
+   	new processes' stack
+   	
+   	ISR pops off the values it pushed before
+   	
+   	return from trap routine
+   	
+   	give control to hardware
+   	
+   	hardware pops off those reg it pushed before 
+   	including the new EIP
+   	
+   	hardware instructs cpu to jump to new EIP
+   	
+   	CPU is now executing the new process which is now running
+   
+   }
 	
 	
 
