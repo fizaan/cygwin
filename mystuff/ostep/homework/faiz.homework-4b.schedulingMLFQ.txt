@@ -1,0 +1,8 @@
+cd C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-sched-mlfq
+
+dos>python mlfq.py -h
+
+dos>python mlfq.py -j 3
+
+DID NOT DO THIS HOMEWORK LOL. Need to do it :p
+

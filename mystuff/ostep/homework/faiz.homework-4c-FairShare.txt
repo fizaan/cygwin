@@ -1,0 +1,28 @@
+Faiz notes:
+
+Your chance of winning the lottery is directly proportioanl to the #
+of tickets you hold/own
+
+"Tickets Represent Your Share" Or in other words represent your chances 
+of winning the lottery, and winning the lottery means your PROCESS gets 
+to run
+
+My question: Do tickets have "weights"? No, but they do have
+	- currency
+	
+Processes also have the ability to:
+	- transfer tickets between themselves
+	- inflate their own tickets to give themselves higher chances 
+	of winning lottery (CPU)
+	
+http://stackoverflow.com/questions/2509679/
+
+-----------------------------------------------------------------------
+
+dos>cd C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-sched-lottery
+
+Run the C code in 'lottery-scheduling' folder
+
+DID NOT DO HOMEWORK PART (must come back to this later)
+
+

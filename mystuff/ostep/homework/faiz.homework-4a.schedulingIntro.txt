@@ -1,0 +1,103 @@
+dos>cd C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-sched
+
+A1) You didn't get this right the firs time because you assumed all 
+jobs arrive AT THE SAME time which is incorrect
+
+>python ./scheduler.py -p FIFO -l 200,200,200
+
+Turnaroung time for each job using FIFO
+	
+	200  (waits 0s)
+	400  (waits 200s)
+	600  (waits 400s)
+	
+	avg: 400
+	
+	
+Response time for each job using FIF0
+
+	0
+	200
+	400
+	
+	avg: 200
+	
+	
+>python ./scheduler.py -p SJF -l 200,200,200
+
+Should be same as FIFO since all jobs have same runtime
+
+----------------------------------------------------------------------
+
+A2)
+
+>python ./scheduler.py -p FIFO -l 100,200,300
+
+Turnaroung time for each job using FIFO
+
+	100
+	300	(waits 100s)
+	600	(waits 400s)
+	
+	avg: 333.3s
+	
+
+Response time for each job using FIF0
+
+	0
+	100
+	300
+	
+	avg: 133	
+	
+
+>python ./scheduler.py -p SJF -l 100,200,300
+
+same as FIFO
+
+---------------------------------------------
+
+A3) You got this wrong, why is their avg response time 1s instead of 2s??
+
+>python ./scheduler.py -p RR -l 100,200,300 -q 1
+
+avg response time should be 2s while turnaround time is 
+	
+	100 x 2 = 200
+	200 x 2 = 200
+	200 x 2 = 200 + 100 = 300
+	
+	avg: 200 + 200 + 300 = 1000 / 3 = 133.3s
+	
+-------------------------------------------------------------------------
+
+A4)
+
+For jobs that run the same amount of time of for jobs that come in 
+perfect completion time sequence such as:
+
+	100,200,300 so that sjf is same as fifo.
+	
+-------------------------------------------------------------------------
+
+A5) No idea lol. Do this again. In fact do this entire chapter's homework again :p
+
+--------------------------------------------------------------------------
+
+A6) Response time increases ofcourse.
+
+>python ./scheduler.py -p SJF -l 1,2,3 -c
+>python ./scheduler.py -p SJF -l 2,3,4 -c
+>python ./scheduler.py -p SJF -l 3,4,5 -c
+
+---------------------------------------------------------------------------
+
+A7) Response time will increase ofcourse
+
+	I think the equation is: N ^ time slice (FUCK IDK LOL).
+	
+Do this again. In fact, do this entire chapter's homework again lol
+It's theoritical so it doesn't matter much until you come across a practical 
+example to solve in say your LC3 OS which you may or may not finish :p
+
+----------------------------------------------------------------------------

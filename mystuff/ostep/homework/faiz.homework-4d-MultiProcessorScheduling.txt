@@ -1,0 +1,25 @@
+Book: 
+
+"As this topic is relatively advanced, it may be best to cover it after you have
+studied the topic of concurrency in some detail."
+
+Hmm. Will read it now anyway
+
+--------------------------------------------------------------------------------
+
+"To understand the new issues surrounding multiprocessor scheduling, we have to 
+understand a new and fundamental difference between single-CPU hardware and 
+multi-CPU hardware. This difference centers around the USE of hardware caches"
+
+The difference is not IF one has a cache while the other doesn't. Each CPU has its
+own cache
+
+--------------------------------------------------------------------------------
+
+dos>cd C:\Users\Alifa\Desktop\ostep.org\ostep-homework\cpu-sched-multi
+
+dos>python multi.py -n 4
+
+AGAIN, didn't do this homework. Skimmed through it. Must revisit this and
+do the homework in future (hopefully)!
+
