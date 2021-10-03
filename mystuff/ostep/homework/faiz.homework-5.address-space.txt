@@ -1,0 +1,7 @@
+Skipped Q1 and Q2 - They are simple.
+
+For code see \homework\address-space
+
+Cannot try Q4 - requires linux. Free commend not found.
+
+Skipped Q5 - Q8 (pmap not found)
