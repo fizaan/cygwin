@@ -1,0 +1,352 @@
+Faiz notes about base and limit (aka bounds)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Firstly, base and limit are per process values which are stored on (and 
+
+used by) the cpu/hardware to check for VALID virtual-to-physical address
+
+mappings. Each process gets it's own values for base and limit. In a 
+
+context switch these base and limit values are saved and swapped accordingly.
+
+~~~~~~~~~~~~
+Segmentation
+~~~~~~~~~~~~
+
+With the introduction of segmentation means that each processes' address
+
+space is divided into many segments such as code, heap (or data), and stack.
+
+And with segmentation, each segment has its own base and limit. This means that
+
+thanks to segmentation we now have a base and limit PER segment PER process!
+
+~~~~~~~~~~~~~~~~~~~~
+What does that mean?
+~~~~~~~~~~~~~~~~~~~~
+
+This means that for each processes' address space there is a base and limit for 
+
+every segment in that address space (..of that specific process). The book however
+
+shows the base and limit each being an array holding the segment base and limit
+
+(see page 5). 
+
+    // get top 2 bits of 14-bit VA
+    Segment = (VirtualAddress & SEG_MASK) >> SEG_SHIFT
+    
+    // now get offset
+    Offset = VirtualAddress & OFFSET_MASK
+    
+    if (Offset >= Bounds[Segment])
+        RaiseException(PROTECTION_FAULT)
+    else
+        PhysAddr = Base[Segment] + Offset
+        Register = AccessMemory(PhysAddr)
+
+
+However, this assumes we are dealing with only 1 process so I think
+
+it is wrong. Not to mention we need a base and bounds array per process! 
+
+Instead MY SOLUTION is to have the cpu/hardware store each processes' segment
+
+base and limit in SPECIAL REGISTERS called segment registers, like this:
+
+    cs - stores the base for code segment
+
+    ds - stores the base for heap/data segment
+
+    ss - stores the base for stack segment
+
+    es - extra unused segment
+
+    and...
+
+    csl - stores the limit for code segment
+
+    dsl - stores the limit for the heap segment
+
+    ssl - stores the limit for the stack segment
+
+    esl - stores the limit for the unused segment
+
+Then we can have a segment selector based on the VA's (virtual address) 
+
+firts two bits and use that as the base and limit as shiwn here:
+
+public register getSegment((VirtualAddress & SEG_MASK) >> SEG_SHIFT)) {
+
+    switch( (VirtualAddress & SEG_MASK) >> SEG_SHIFT) ) {
+
+            case 00: return cs; limit = csl;
+
+            case 01: return ds; limit = dsl;
+
+            case 11: return ss; limit = ssl;
+
+            case 10: unused segment limit = esl;
+    }
+
+}
+
+... then do something similar to above like this:
+
+
+    // get top 2 bits of 14-bit VA
+    Segment = (VirtualAddress & SEG_MASK) >> SEG_SHIFT
+
+    // get the base physical address
+    base = getSegment(Segment);
+    
+    // now get offset
+    Offset = VirtualAddress & OFFSET_MASK
+    
+    if (Offset >= limit) // we set the limit in getSegment()
+        RaiseException(PROTECTION_FAULT)
+    else
+        PhysAddr = base + Offset
+        Register = AccessMemory(PhysAddr)
+
+... and my approach to me seems "more" correct because we can easily save/switch the segment
+
+registers (cs,ds,ss,es,csl,dsl,ssl,esl) whenever there is a context switch. I think this
+
+is what the x86 does too.
+
+---------------------------------------------------------------------------------------
+
+~~~~~~~~~~~~~~~
+HOMEWORK README
+~~~~~~~~~~~~~~~
+
+dos>cd C:\Users\Alifa\Desktop\ostep.org\ostep-homework\vm-segmentation
+
+dos>python segmentation.py
+
+Note: max address space is 16k which is 16384 which is represented by 14 bits
+
+so 14th bit is the TOP MOST BIT
+
+Virtual Address Trace
+  VA  0: 0x0000020b (decimal:  523) --> PA or segmentation violation? seg fault
+  VA  1: 0x0000019e (decimal:  414) --> PA or segmentation violation? 7304
+  VA  2: 0x00000322 (decimal:  802) --> PA or segmentation violation? seg fault
+  VA  3: 0x00000136 (decimal:  310) --> PA or segmentation violation? 7200
+  VA  4: 0x000001e8 (decimal:  488) --> PA or segmentation violation? seg fault
+
+Hmm, these are all requesting memory access to segment 0
+
+523 = 00001000001011 = 0 1000001011
+seg 0 base: 6890 + 523 (523 is > 472) = seg fault
+
+414 = 00000110011110 = 0 110011110
+seg 0 base: 6890 + 414 (414 is < 472) = 7304
+
+802 = 00001100100010 = 0 1100100010
+seg 0 base: 6890 + 802 (802 is > 472) = seg fault
+
+310 = 00000100110110 = 0 100110110
+seg 0 base: 6890 + 310 (310 is < 472) = 7200
+
+488 = 00000111101000 = 0  111101000
+seg 0 base: 6890 + 488 (488 is > 472) = seg fault
+
+~~~~~~~~~~~~~~~
+Lesson learned
+~~~~~~~~~~~~~~~
+
+Oh no! I got this wrong LOL!!! Why ? Because the number of bits is 10! I used 
+
+16k instead of 1k, hence: 1K (address space size) 1024 - 1 = 1111111111 = 10 bits.
+
+16k is the total physical memory size and we are interested only in the size of the
+
+address space which is 1k. Wait...why 1023 and not 1024? Because we start from 0 to 
+
+1023. Another thing to note is that if the address space is 1k then and we are using 
+
+only two segments then the max size of each segment is 1k / 2 = 512 bytes. Hence the 
+
+max segment size is 512. We need this max value (512) to map virtual addresses to 
+
+physicall addresses that are referencing the stack segment. So let's do this Again!
+
+Virtual Address Trace
+  VA  0: 0x0000020b (decimal:  523) --> PA or segmentation violation? seg 1: seg fault
+  VA  1: 0x0000019e (decimal:  414) --> PA or segmentation violation? seg 0: 7304
+  VA  2: 0x00000322 (decimal:  802) --> PA or segmentation violation? seg 1: 4470
+  VA  3: 0x00000136 (decimal:  310) --> PA or segmentation violation? seg 0: 7200
+  VA  4: 0x000001e8 (decimal:  488) --> PA or segmentation violation? seg 0: seg fault
+
+523 = 1000001011 = 1 1011
+seg 1 base: 4692 + (11 - 512) (501 is > 450) = seg fault
+
+414 = 0110011110 = 0 110011110
+seg 0 base: 6890 + 414 (414 is < 472) = 7304
+
+802 = 1100100010 = 1 100100010
+seg 1 base: 4692 + (290 - 512) (222 < 450)= 4470
+
+310 = 0100110110 = 0 100110110
+seg 0 base: 6890 + 310 (310 is < 472) = 7200
+
+488 = 0111101000 = 0  111101000
+seg 0 base: 6890 + 488 (488 is > 472) = seg fault
+
+Now let's run this and solve to see if I fully understand before going to the actual
+
+homework: dos>python segmentation.py -s 100 -a 16 -p 32 (this will throw an error)
+
+dos>python segmentation.py -s 100 -a 16 -p 33
+
+ARG seed 100
+ARG address space size 16
+ARG phys mem size 33
+
+Segment register information:
+
+  Segment 0 base  (grows positive) : 0x00000019 (decimal 25)
+  Segment 0 limit                  : 4
+
+  Segment 1 base  (grows negative) : 0x00000013 (decimal 19)
+  Segment 1 limit                  : 5
+
+Virtual Address Trace
+  VA  0: 0x0000000c (decimal:   12) --> PA or segmentation violation? seg 1: 15
+  VA  1: 0x00000008 (decimal:    8) --> PA or segmentation violation? seg 1: seg fault
+  VA  2: 0x00000001 (decimal:    1) --> PA or segmentation violation? seg 0: 26
+  VA  3: 0x00000007 (decimal:    7) --> PA or segmentation violation? seg 0: seg fault
+  VA  4: 0x00000000 (decimal:    0) --> PA or segmentation violation? seg 0: 25
+
+Before solving this first check out many bits we are working with. The address space
+
+is only 16 bytes (0 to 15) which can be represented with 4 bits if we count from 0.
+
+Next, the max segment size. 16 / 2 = 8. No we can start!
+
+12: 1100 = 1 100 = seg 1: 19 + (4 - 8) (4 < 5) = 19 - 4 = 15
+
+8: 1000 = 1 = seg 1: 19 + (0 - 8) (8 > 5): seg fault
+
+1: 0 = seg 0: 25 + 1 (1 < 4): 26
+
+7: 0111 = seg 0: 25 + (7 > 4): seg fault
+
+0: seg 0: 25 + 0 (0 < 4): 25
+
+Yes you got this one right! And now finally, the real homework begins.
+
+~~~~~~~~~~~~~~~~~~~
+Answers to HOMEWORK
+~~~~~~~~~~~~~~~~~~~
+
+A1)
+
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0
+
+ARG address space size 128 (0 - 127) = 1111111 (7 bits)
+
+max segment size = 128 / 2 = 64
+
+Virtual Address Trace
+  VA  0: 0x0000006c (decimal:  108) --> PA or segmentation violation? seg 1: seg fault (you got this wrong)*
+  VA  1: 0x00000061 (decimal:   97) --> PA or segmentation violation? seg 1: seg fault
+  VA  2: 0x00000035 (decimal:   53) --> PA or segmentation violation? seg 0: seg fault
+  VA  3: 0x00000021 (decimal:   33) --> PA or segmentation violation? seg 0: seg fault
+  VA  4: 0x00000041 (decimal:   65) --> PA or segmentation violation? seg 1: seg fault
+
+108: 1101100: 1 101100: seg 1: 512 + (44 - 64) (20 >= 20): seg fault* (apparently, 20 <= 20 is OK!)
+97 : 1100001: 1 100001: seg 1: 512 + (33 - 64) (32 >= 20): seg fault
+53 : 0110101: 0 110101: seg 0: 0 + 53 (53 > 20)          : seg fault 
+33 : 0100001: 0 100001: seg 0: 0 + 33 (33 > 20)          : seg fault 
+65 : 1000001: 1 000001: seg 1: 512 + (1 - 64) (63 > 20)  : seg fault
+
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 1
+
+Virtual Address Trace
+  VA  0: 0x00000011 (decimal:   17) --> PA or segmentation violation? seg 0: 17
+  VA  1: 0x0000006c (decimal:  108) --> PA or segmentation violation? seg 1: 492
+  VA  2: 0x00000061 (decimal:   97) --> PA or segmentation violation? seg 1: seg fault
+  VA  3: 0x00000020 (decimal:   32) --> PA or segmentation violation? seg 0: seg fault
+  VA  4: 0x0000003f (decimal:   63) --> PA or segmentation violation? seg 0: seg fault
+
+17 : 0010001: 0 10001 : seg 0: 0 + 17 (17 < 20)          : 17
+108: 1101100: 1 101100: seg 1: 512 + (44 - 64) (20 == 20): 492
+97 : 1100001: 1 100001: seg 1: 512 + (33 - 64) (32 >= 20): seg fault
+32 : 0100000: 0 100000: seg 0: 0 + 32 (32 > 20)          : seg fault 
+63 : 0111111: 0 111111: seg 0: 0 + 63 (63 > 20)          : seg fault
+
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 2
+
+Virtual Address Trace
+  VA  0: 0x0000007a (decimal:  122) --> PA or segmentation violation? seg 1: 506
+  VA  1: 0x00000079 (decimal:  121) --> PA or segmentation violation? seg 1: 505
+  VA  2: 0x00000007 (decimal:    7) --> PA or segmentation violation? seg 0: 7
+  VA  3: 0x0000000a (decimal:   10) --> PA or segmentation violation? seg 0: 10
+  VA  4: 0x0000006a (decimal:  106) --> PA or segmentation violation? seg 1: seg fault
+
+122: 1111010: 1 111010: seg 1: 512 + (58 - 64) (6 < 20)  : 506
+121: 1111001: 1 111001: seg 1: 512 + (57 - 64) (7 < 20)  : 505
+7  : 0000111: 0 000111: seg 0: 0 + 7                     : 7  
+10 : 0001010: 0 001010: seg 0: 0 + 10                    : 10
+106: 1101010: 1 101010: seg 1: 512 + (42 - 64) (22 > 20) : seg fault
+
+---------------------------------------------------------------------------------------
+
+A2)
+
+- What is the highest legal virtual address in segment 0? 20 (wrong, its 19 because 20 >= 20)
+
+- What about the lowest legal virtual address in segment 1? 108 because 512 + (44 - 64) (20 <= 20) = 492
+
+Remember: when segment grows positively to higher addresses (such as the heap) then
+
+bounds check is if offset >= limit then throw exception. Hence why above for seg 0, an offset
+
+of 20 is illegal while 19 is ok! But when segment is growing negatively to lower addresses then
+
+the absolute value of the offset must be <= limit, else throw exception. This is why you got the 
+
+first address of A1 wrong (20 <= 20 is ok).
+
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -A 19 -c
+
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -A 108 -c
+
+- What are the lowest and highest illegal addresses in this entire address space?
+
+seg 0: lowest illegal VA is 20
+seg 0: highest illegal VA is 63
+seg 0: lowest legal VA is 0
+seg 0: highest legal VA is 19
+
+seg 1: lowest illegal VA is 64
+seg 1: highest illegal VA is 107
+seg 1: lowest legal VA is 108
+seg 1: highest legal VA is 127
+
+- Finally, how would you run segmentation.py with the -A flag to test if you are right?
+
+seg 0 test:
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -A 20 -c
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -A 63 -c
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -A 0 -c
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -A 19 -c
+
+seg 1 test:
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -A 64 -c
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -A 107 -c
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -A 108 -c
+dos>python segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -A 127 -c
+
+----------------------------------------------------------------------------------------
+
+A3)
+
+
+
+
+
+

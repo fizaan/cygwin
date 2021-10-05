@@ -1,0 +1,262 @@
+Bounds check:
+
+"Specifically, the processor will first check that the memory reference
+is within bounds to make sure it is legal; in the simple example above, the
+bounds register would ALWAYS be set to 16 KB. If a process generates a 
+virtual address that is greater than the bounds, or one that is negative, the
+CPU will raise an exception, and the process will likely be terminated." - pg 7
+
+Why 16 KB and why always? That's just the size they have set each program's 
+address space to be. It is the SIZE not PHYSICAL ADDRESS so when a process 
+requests for some virtual address then this is how the CPU/HARDWARE will 
+perform out of bounds check:
+
+(a)	if virtural address >= bounds/limit register OR virtual address < 0
+		
+		throw segmentation fault
+	
+Another way to check bounds is to have the bounds register set to the
+address space: "In the second way, it (bounds register) holds the physical 
+address of the end of the address space, and thus the hardware first adds 
+the base and then makes sure the address is within bounds. Both methods are 
+logically equivalent; for simplicity, we'll usually assume the former method." 
+Notice that the bounds register is same is the x86 LIMIT - last addre byte.
+
+(b)	if base + virtual address >= bound/limit register || base + virtual address < 0 
+
+		throw segmentation fault
+		
+Note that both checks are done by the HARDWARE/CPU (not OS!). The hardware holds the
+base and bounds registers.
+
+In these homework excersizes they are assuming (a), above, to check for segmentation fault
+which means they are not taking into account the address space size. Not sure if this is 
+a good idea. See answer to question 4 below.
+-------------------------------------------------------------------
+
+dos>cd C:\Users\Alifa\Desktop\ostep.org\ostep-homework\vm-mechanism
+
+C:\Users\Alifa\Desktop\ostep.org\ostep-homework\vm-mechanism>python relocation.py
+
+ARG seed 0
+ARG address space size 1k
+ARG phys mem size 16k
+
+Base-and-Bounds register information:
+
+  Base   : 0x00003082 (decimal 12418)
+  Limit  : 472
+
+Virtual Address Trace
+  VA  0: 0x000001ae (decimal:  430) --> PA or segmentation violation? 12,848
+  VA  1: 0x00000109 (decimal:  265) --> PA or segmentation violation? 12,683
+  VA  2: 0x0000020b (decimal:  523) --> PA or segmentation violation? Seg fault
+  VA  3: 0x0000019e (decimal:  414) --> PA or segmentation violation? 12,832
+  VA  4: 0x00000322 (decimal:  802) --> PA or segmentation violation? Seg fault
+  
+
+Bounds: 12418 + 472 = 12890. Note that both 523 and 802 are > Limit (472) 
+hence they cause seg fault
+--------------------------------------------------------------------------------
+
+A1) 
+
+dos>python relocation.py -s 1
+
+Base-and-Bounds register information:
+
+  Base   : 0x0000363c (decimal 13884)
+  Limit  : 290
+
+Virtual Address Trace
+  VA  0: 0x0000030e (decimal:  782) --> PA or segmentation violation? seg fault
+  VA  1: 0x00000105 (decimal:  261) --> PA or segmentation violation? 14145
+  VA  2: 0x000001fb (decimal:  507) --> PA or segmentation violation? seg fault
+  VA  3: 0x000001cc (decimal:  460) --> PA or segmentation violation? seg fault
+  VA  4: 0x0000029b (decimal:  667) --> PA or segmentation violation? seg fault
+  
+
+dos>python relocation.py -s 2
+
+  Base   : 0x00003ca9 (decimal 15529)
+  Limit  : 500
+
+Virtual Address Trace
+  VA  0: 0x00000039 (decimal:   57) --> PA or segmentation violation? 15586
+  VA  1: 0x00000056 (decimal:   86) --> PA or segmentation violation? 15615
+  VA  2: 0x00000357 (decimal:  855) --> PA or segmentation violation? seg fault
+  VA  3: 0x000002f1 (decimal:  753) --> PA or segmentation violation? seg fault
+  VA  4: 0x000002ad (decimal:  685) --> PA or segmentation violation? seg fault
+  
+
+dos>python relocation.py -s 3
+
+Base-and-Bounds register information:
+
+  Base   : 0x000022d4 (decimal 8916)
+  Limit  : 316
+
+Virtual Address Trace
+  VA  0: 0x0000017a (decimal:  378) --> PA or segmentation violation? seg fault
+  VA  1: 0x0000026a (decimal:  618) --> PA or segmentation violation? seg fault
+  VA  2: 0x00000280 (decimal:  640) --> PA or segmentation violation? seg fault
+  VA  3: 0x00000043 (decimal:   67) --> PA or segmentation violation? 8983
+  VA  4: 0x0000000d (decimal:   13) --> PA or segmentation violation? 8929
+  
+-------------------------------------------------------------------------------
+
+A2) 
+
+dos>python relocation.py -s 0 -n 10
+
+  Base   : 0x00003082 (decimal 12418)
+  Limit  : 472
+
+Virtual Address Trace
+  VA  0: 0x000001ae (decimal:  430) --> PA or segmentation violation?
+  VA  1: 0x00000109 (decimal:  265) --> PA or segmentation violation?
+  VA  2: 0x0000020b (decimal:  523) --> PA or segmentation violation?
+  VA  3: 0x0000019e (decimal:  414) --> PA or segmentation violation?
+  VA  4: 0x00000322 (decimal:  802) --> PA or segmentation violation?
+  VA  5: 0x00000136 (decimal:  310) --> PA or segmentation violation?
+  VA  6: 0x000001e8 (decimal:  488) --> PA or segmentation violation?
+  VA  7: 0x00000255 (decimal:  597) --> PA or segmentation violation?
+  VA  8: 0x000003a1 (decimal:  929) --> PA or segmentation violation?
+  VA  9: 0x00000204 (decimal:  516) --> PA or segmentation violation?
+
+Answer:
+dos>python relocation.py -s 0 -n 10 -l 929
+
+OOPS! it should be 930!
+---------------------------------------------------------------------
+
+A3) dos>python relocation.py -s 1 -n 10 -l 100
+
+  Base   : 0x00000899 (decimal 2201)
+  Limit  : 100
+
+Virtual Address Trace
+  VA  0: 0x00000363 (decimal:  867) --> PA or segmentation violation?
+  VA  1: 0x0000030e (decimal:  782) --> PA or segmentation violation?
+  VA  2: 0x00000105 (decimal:  261) --> PA or segmentation violation?
+  VA  3: 0x000001fb (decimal:  507) --> PA or segmentation violation?
+  VA  4: 0x000001cc (decimal:  460) --> PA or segmentation violation?
+  VA  5: 0x0000029b (decimal:  667) --> PA or segmentation violation?
+  VA  6: 0x00000327 (decimal:  807) --> PA or segmentation violation?
+  VA  7: 0x00000060 (decimal:   96) --> PA or segmentation violation?
+  VA  8: 0x0000001d (decimal:   29) --> PA or segmentation violation?
+  VA  9: 0x00000357 (decimal:  855) --> PA or segmentation violation?
+  
+What is the maximum value that base can be set to, such that the address space still
+fits into physical memory in its entirety?
+  
+  x + 100 = 16 KB
+  x = 16KB - 100 = 15900 or 15899
+  
+------------------------------------------------------------------------
+
+*A4) 
+	dos>python relocation.py -s 1 -n 10 -l 100 -a 3k -p 20k
+	
+I ran with:
+dos>python relocation.py -s 1 -c -a 3k -p 20k -c
+dos>python relocation.py -s 2 -c -a 3k -p 20k -c
+dos>python relocation.py -s 3 -c -a 3k -p 20k -c
+dos>python relocation.py -s 1 -c -a 5k -p 25k -c
+dos>python relocation.py -s 2 -c -a 5k -p 25k -c
+dos>python relocation.py -s 3 -c -a 5k -p 25k -c
+dos>python relocation.py -s 0 -c -a 5k -p 25k -c
+
+So the VA is always checked against the limit register 
+regardless of the address space size? Does that sound
+right? Hmm. If you read your osdev notes from June 23
+it says:
+
+    Remember that limit is the last addresseable byte,
+    not size.
+
+CS:
+7e00 ---->	+--------+
+				    + 000000 +
+				    +--------+
+				    +--------+
+				    + 000001 +
+				    +--------+
+				    +--------+
+            + 000002 +
+            +--------+
+            ....
+            ....
+            +--------+
+            + 8e00	 +		(limit=7e00+0x1000)
+            +--------+		
+
+So if base + limit = last addresseable byte and if that
+last address is less than base address + address space then there shouldn't 
+be any access violations, right? Right! Alghough I AM SEEING ACCESS VIOLATIONS HERE! Why?
+Because the limit register needs to be adjusted according to the address space
+size. Me thinks.
+	
+------------------------------------------------------------------------
+
+A5) Did not do this.
+
+------------------------------------------------------------------------
+
+*My thoughts: One thing I don't get is why does the limit not take into account
+the address space size. For example, above in A4, I set the address space size
+to 3K but the limit (bounds register can be set to 100!) why? For example, try 
+this:
+	dos>python relocation.py -s 1 -n 10 -a 2k -p 16k -c
+	
+You get:
+	ARG seed 1
+	ARG address space size 2k
+	ARG phys mem size 16k
+	
+	Base-and-Bounds register information:
+	
+	  Base   : 0x0000363c (decimal 13884)
+  	  Limit  : 580
+  
+ 
+Why is the limit so low? Surely I should be able to access anything over 13844 + 580 because
+I'm still well within the address space.
+
+13884 + 2k  = 15932
+13884 + 580 = 14464 (which is still way less than 15932)
+
+Solution: I think I need to update the limit as per the address space. 
+Here I specify my limit to be same as the address space size hence 
+why all VA are valid this time! 
+
+dos>python relocation.py -s 0 -n 10 -a 2k -p 16k -l 2000 -c
+
+ARG seed 0
+ARG address space size 2k
+ARG phys mem size 16k
+
+Base-and-Bounds register information:
+
+  Base   : 0x0000360b (decimal 13835)
+  Limit  : 2000
+
+Virtual Address Trace
+  VA  0: 0x00000610 (decimal: 1552) --> VALID: 0x00003c1b (decimal: 15387)
+  VA  1: 0x0000035d (decimal:  861) --> VALID: 0x00003968 (decimal: 14696)
+  VA  2: 0x00000212 (decimal:  530) --> VALID: 0x0000381d (decimal: 14365)
+  VA  3: 0x00000417 (decimal: 1047) --> VALID: 0x00003a22 (decimal: 14882)
+  VA  4: 0x0000033d (decimal:  829) --> VALID: 0x00003948 (decimal: 14664)
+  VA  5: 0x00000645 (decimal: 1605) --> VALID: 0x00003c50 (decimal: 15440)
+  VA  6: 0x0000026d (decimal:  621) --> VALID: 0x00003878 (decimal: 14456)
+  VA  7: 0x000003d0 (decimal:  976) --> VALID: 0x000039db (decimal: 14811)
+  VA  8: 0x000004aa (decimal: 1194) --> VALID: 0x00003ab5 (decimal: 15029)
+  VA  9: 0x00000743 (decimal: 1859) --> VALID: 0x00003d4e (decimal: 15694)
+  
+
+But...could it be that the limit register doesn't care about a processes' 
+address space size?? That could be it.. so whatever value we set the limit 
+register then THAT is what the HARDWARE will use to check bounds. If this
+is true then in Question #4 setting address space size shouldn't matter, no?
+
+
