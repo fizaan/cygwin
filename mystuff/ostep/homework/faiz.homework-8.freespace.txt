@@ -1,0 +1,969 @@
+dos>cd C:\Users\Alifa\Desktop\ostep.org\ostep-homework\vm-freespace
+
+~~~~~~~
+README
+~~~~~~~
+
+My Observations: In the book on page 6 they ask for 4k of heap - 4096 bytes but subtract a header
+
+of size 8 bytes thereby giving us 4096 - 8 = 4088 bytes of heap to work with. Thus the initial heap
+
+will look like this:
+
++------+
+*  8   * 
++------+ <---- address of start of our heap
++ 4088 +
++------+
+
+THEY DO NOT DO THAT IN THE README. If they ask for a heap of size 100 then they get exactly That
+
+regardless of the header size. This is only when the heap is empty i.e. nothing has been allocated.
+
+So does this mean their unallocated free list looks like this? Note by collapse in this
+
+homework I mean coalescing.
+
+Original free list:
++------+ <--- 996
++  4   +
++------+ <--- 1000 (base/start address of freespace)
++  100 + orignal free 
++------+
+
+I think so, although the start of the list is always 1000 (-b 1000). In fact if you look at the source
+
+for malloc.py in the init function they are not substracting the header from the size when the free list
+
+gets initialized:
+
+        # info about pretend headers
+        self.headerSize  = headerSize
+
+        # init free list
+        self.freelist    = []
+        self.freelist.append((start, size))
+
+So if you run this: a heap of size 100 starting at addr 1000, no header, 4-byte alignment and 
+
+a request for 6 bytes of memory:
+
+dos>python malloc.py -S 100 -b 1000 -H 0 -a 4 -l ADDRSORT -p BEST -A +6 -c
+
+You get:
+
++------+ <--- 1000
++  6   + p[0]
++------+
++  +2  + roudup to nearest 4-byte alignment
++------+ <---- 1008
++  92  + freelist size updated
++------+
+
+dos>python malloc.py -S 100 -b 1000 -H 4 -a 4 -l ADDRSORT -p BEST -A +6 -c
+
+You get:
+
++------+ <--- 1000 (base)
+*  4   *
++------+ 
++  6   + p[0]
++------+
++  +2  + roudup to nearest 4-byte alignment
++------+ <---- 1012
++  88  + freelist size updated
++------+
+
+But if you change the source code to include the header in the initialized free list:
+
+    self.freelist.append((start, size - headerSize))
+
+dos>python malloc.py -S 100 -b 1000 -H 4 -a 4 -l ADDRSORT -p BEST -A +6 -c
+
+You should get:
+
++------+ <--- 1000 (base)
+*  4   *
++------+ 
++  6   + p[0]
++------+
++  +2  + roudup to nearest 4-byte alignment
++------+ <---- 1012
++  84  + freelist size updated
++------+
+
+Which proves they are not substracting the header from the initialized free list
+
+----------------------------------------------------------------------------------------------
+
+dos>python malloc.py -S 100 -b 1000 -H 4 -a 4 -l ADDRSORT -p BEST -n 5
+
+Assuming no collasping/compacting
+
+ptr[0] = Alloc(3) returned should return 1000 ? Actually it returns 1004 taking into account the header
+
++------+ <--- 1000 (base)
+*  4   *
++------+ <--- 1004
++  3   + p[0]
++------+
++  +1  + roudup to nearest 4-byte alignment
++------+
+
++------+
+*  4   *
++------+ <---- 1008
++  92  + new free
++------+
+
+Free(ptr[0]) returned ? I'm not sure what this returns. Is it even supposed to return something?
+
++------+ <--- 1000 (base)
+*  4   * free
++------+ <--- 1004
++  3   + free
++------+
++  +1  + free
++------+
+
++------+
+*  4   *
++------+ <---- 1008
++  92  + new free
++------+
+
+ptr[1] = Alloc(5)  returned ? 1012
+
++------+ <--- 1000 (base)
+*  4   * free
++------+ <--- 1004
++  3   + free
++------+
++  +1  + free
++------+
+
++------+
+*  4   *
++------+ <---- 1012
++  5   + p[1]
++------+
++  +3  + alignment
++------+ 
+
++------+
+*  4   *
++------+ <---- 1020
++  80  + new free
++------+
+
+
+Free(ptr[1]) returned ? What the heck, free doesn't return anything or does it??
+
++------+ <--- 1000 (base)
+*  4   * free
++------+ <--- 1004
++  3   + free
++------+
++  +1  + free
++------+
+
++------+ <--- 1008
+*  4   * free
++------+ 
++  5   + free
++------+
++  +3  + free
++------+ 
+
++------+
+*  4   *
++------+ <---- 1020
++  80  +
++------+
+
+ptr[2] = Alloc(8)  returned ? 1012
+
++------+ <--- 1000 (base)
+*  4   * free
++------+ <--- 1004
++  3   + free
++------+
++  +1  + free
++------+
+
++------+ 
+*  4   * 
++------+ <----- 1012
++  8   + p[2]
++------+
+
++------+
+*  4   *
++------+ <---- 1020
++  80  +
++------+
+
+Oh! free returns "0" on success. That's why the answers show 0
+
+-----------------------------------------------------------------------------------
+
+Turn on collasping -C flag
+
+dos>python malloc.py -S 100 -b 1000 -H 4 -a 4 -l ADDRSORT -p BEST -n 5 -C
+
+ptr[0] = Alloc(3) returned ? 1004 (as before)
+
++------+ <--- 1000 (base)
+*  4   *
++------+ <--- 1004
++  3   + p[0]
++------+
++  +1  + roudup to nearest 4-byte alignment
++------+
+
++------+
+*  4   *
++------+ <---- 1008
++  92  + new free
++------+
+
+Free(ptr[0])
+
+Because we are now using the -C flag, the original free space is restored
+
++------+ <--- 1000 (base)
++  4   +
++------+ <--- 1004 (start address of freespace)
++  100 + orignal free 
++------+
+
+ptr[1] = Alloc(5) returned ? 1004
+
++------+ <--- 1000 (base)
+*  4   *
++------+ <--- 1004
++  5   + p[1]
++------+
++  +3  + roudup to nearest 4-byte alignment
++------+
+
++------+
+*  4   *
++------+ <---- 1016 (they say 1012!) (*)
++  88  + new free
++------+
+
+Free(ptr[1])
+
++------+ <--- 1000 (base)
++  4   +
++------+ <--- 1004 (start address of freespace)
++  100 + orignal free 
++------+
+
+ptr[2] = Alloc(8) returned ? 1004
+
++------+ <--- 1000 (base)
+*  4   *
++------+ <--- 1004
++  8   + p[2]
++------+
+
++------+
+*  4   *
++------+ <---- 1016 (they say 1012!) (*)
++  88  + new free
++------+
+
+(*) They don't count the header when there is nothing allocated on the heap. Why? Its because they are not
+
+using the header for the original unallocated free heap. So the last operation after call to malloc  looks 
+
+like this:
+
+ptr[2] = Alloc(8) returned ? 1004
+
++------+ <--- 1000 (base)
+*  4   *
++------+ <--- 1004
++  8   + p[2]
++------+
+
++------+ <---- 1012
++  88  + new free
++------+
+
+-----------------------------------------------------------------------------------------
+
+~~~~~~~~
+homework
+~~~~~~~~
+
+A1) Note that this will have no alignment
+
+dos>python malloc.py -n 10 -H 0 -p BEST -s 0
+
+or..
+
+dos>python malloc.py -n 10 -H 0 -p BEST -s 0 -A +3,-0,+5,-1,+8,-2,+8,-3,+2,+7 -c
+
+ptr[0] = Alloc(3) returned ? 1000
+
++------+ <--- 1000
++  3   + p[0]
++------+
+
++------+ <---- 1003
++  97  + new free
++------+
+
+Free(ptr[0]) returns ? 0
+
++------+ <--- 1000
++  (-3)   + p[0]
++------+
+
++------+ <---- 1003
++  97  + new free
++------+
+
+ptr[1] = Alloc(5) returned ? 1003
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++  5   + p[1]
++------+
+
++------+ <---- 1008
++  92  + new free
++------+
+
+Free(ptr[1])
+returned ? 0
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <---- 1008
++  92  + new free
++------+
+
+ptr[2] = Alloc(8) returned ? 1008
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ 8    + p[2]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+Free(ptr[2])
+returned ? 0
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[2]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+ptr[3] = Alloc(8) returned ? 1008
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ 8    + p[3]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+Free(ptr[3])
+returned ? 0
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[3]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+ptr[4] = Alloc(2) returned ? 1000
+List?
+
++------+ <--- 1000
++ 2    + p[4]
++------+
+
++------+ <--- 1002
++ (-1) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[3]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+ptr[5] = Alloc(7) returned ? 1008
+List?
+
++------+ <--- 1000
++ 2    + p[4]
++------+
+
++------+ <--- 1002
++ (-1) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ 7    + p[5]
++------+
+
++------+ <--- 1015
++ (-1) + p[3]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+- Can you guess the state of the free list after each request? Yes.
+
+- What do you notice about the free list over time? It's fragmenting :p
+
+------------------------------------------------------------------------------------
+
+A2) Use WORST fit policy
+
+dos>python malloc.py -n 10 -H 0 -p WORST -s 0 -c
+
+or...
+
+dos>python malloc.py -n 10 -H 0 -p WORST -s 0 -A +3,-0,+5,-1,+8,-2,+8,-3,+2,+7 -c
+
+ptr[0] = Alloc(3) returned ? 1000
+List?
+
++------+ <--- 1000
++  3   + p[0]
++------+
+
++------+ <---- 1003
++  97  + new free
++------+
+
+Free(ptr[0])
+returned ? 0
+List?
+
++------+ <--- 1000
++  (-3)   + p[0]
++------+
+
++------+ <---- 1003
++  97  + new free
++------+
+
+ptr[1] = Alloc(5) returned ? 1003
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++  5   + p[1]
++------+
+
++------+ <---- 1008
++  92  + new free
++------+
+
+Free(ptr[1])
+returned ? 0
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <---- 1008
++  92  + new free
++------+
+
+ptr[2] = Alloc(8) returned ? 1008
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ 8    + p[2]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+Free(ptr[2])
+returned ? 0
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[2]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+ptr[3] = Alloc(8) returned ? 1016
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[2]
++------+
+
++------+ <--- 1016
++ 8    + p[3]
++------+
+
++------+ <---- 1024
++  76  + new free
++------+
+
+Free(ptr[3])
+returned ? 0
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[2]
++------+
+
++------+ <--- 1016
++ (-8) + p[3]
++------+
+
++------+ <---- 1024
++  76  + new free
++------+
+
+ptr[4] = Alloc(2) returned ? 1024
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[2]
++------+
+
++------+ <--- 1016
++ (-8) + p[3]
++------+
+
++------+ <---- 1024
++  2   + p[4]
++------+
+
++------+ <---- 1026
++  74  + new free
++------+
+
+ptr[5] = Alloc(7) returned ? 1026
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[2]
++------+
+
++------+ <--- 1016
++ (-8) + p[3]
++------+
+
++------+ <---- 1024
++  2   + p[4]
++------+
+
++------+ <---- 1026
++  7  + p[5]
++------+
+
++------+ <---- 1033
++  67  + new free
++------+
+
+- How are the results different when using a WORST fit policy to search the free list (-p WORST)? What changes?
+
+Results aren't that different except the free list grows and gets more fragmented
+
+----------------------------------------------------------------------------------------
+
+A3) Using first fit
+
+dos>python malloc.py -n 10 -H 0 -p FIRST -s 0 -c
+
+or...
+
+dos>python malloc.py -n 10 -H 0 -p FIRST -s 0 -A +3,-0,+5,-1,+8,-2,+8,-3,+2,+7 -c
+
+ptr[0] = Alloc(3) returned ? 1000
+List?
+
++------+ <--- 1000
++  3   + p[0]
++------+
+
++------+ <---- 1003
++  97  + new free
++------+
+
+Free(ptr[0])
+returned ? 0
+List?
+
++------+ <--- 1000
++  (-3)   + p[0]
++------+
+
++------+ <---- 1003
++  97  + new free
++------+
+
+ptr[1] = Alloc(5) returned ? 1003
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++  5   + p[1]
++------+
+
++------+ <---- 1008
++  92  + new free
++------+
+
+Free(ptr[1])
+returned ? 0
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <---- 1008
++  92  + new free
++------+
+
+ptr[2] = Alloc(8) returned ? 1008
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ 8    + p[2]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+Free(ptr[2])
+returned ? 0
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[2]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+ptr[3] = Alloc(8) returned ? 1008
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++  8   + p[3]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+Free(ptr[3])
+returned ? 0
+List?
+
++------+ <--- 1000
++ (-3) + p[0]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[3]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+ptr[4] = Alloc(2) returned ? 1000
+List?
+
++------+ <--- 1000
++ 2    + p[4]
++------+
+
++------+ <--- 1002
++ (-1) + p[4]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ (-8) + p[3]
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+ptr[5] = Alloc(7) returned ? 1008
+List?
+
++------+ <--- 1000
++ 2    + p[4]
++------+
+
++------+ <--- 1002
++ (-1) + p[4]
++------+
+
++------+ <--- 1003
++ (-5) + p[1]
++------+
+
++------+ <--- 1008
++ 7    + p[5]
++------+
+
++------+ <--- 1015
++ (-1) + 
++------+
+
++------+ <---- 1016
++  84  + new free
++------+
+
+- What speeds up when you use first fit? Search speeds up. Allocation is faster
+
+
+-------------------------------------------------------------------------------
+
+A4) Did not do this but I can imagine that keeping and ordered asc list can greatly 
+
+improve first fit performance. Even best fit will be improved as we do less search. 
+
+I think worst fit would remain the same or even get worse!
+
+--------------------------------------------------------------------------------
+
+A5-7) Didn't do these questions. in A5 They are asking to run a 1000 requests! Rest 
+
+are theoritical :p I think I got a good grip on how allocation works w/o collasping or
+
+ordering. But I will still need to do my own work when I want to order the list or 
+
+collapse it. Note by collapse I mean coalescing.
+
+dos>python malloc.py -n 1000 -H 0 -p BEST -s 0 -c
+dos>python malloc.py -n 1000 -H 0 -p WORST -s 0 -c
+dos>python malloc.py -n 1000 -H 0 -p FIRST -s 0 -c
+
+dos>python malloc.py -n 1000 -H 0 -p BEST -s 0 -c -C
+dos>python malloc.py -n 1000 -H 0 -p WORST -s 0 -c -C
+dos>python malloc.py -n 1000 -H 0 -p FIRST -s 0 -c -C
+
+All I can say here is that collasping makes the searches faster for all three
+
+-------------------------------------------------------------------------------------
+
+~~~~~~~~~~~~~~
+Implementation
+~~~~~~~~~~~~~~
+
+Linear linked list is used to implemented the heap free list but you should be careful 
+
+how you handle the free or delete function. See the diagram below, let's say we use 
+
+FIRST fit policy and then there are 5 requests for memory allocation. Here is what our
+
+list will look like. 
+
+(1)--->(2)--->(3)--->(4)--->(5)--->(1 free big chunk)
+
+Now let's say we want to free the 3rd process (3) from memory. Can we just do this?
+
+point 2's next to 4
+point 4's prev to 2
+
+(1)--->(2)--->(x)--->(4)--->(5)--->(1 free big chunk)
+
+(1)--->(2)--->(4)--->(5)--->(1 free big chunk)
+
+NO! We can't do that because all the PHYSICAL REGION between 2 and 4 will go to waste even though we 
+
+have removed all references to (3). Instead what you should do is change the flag of (3) to free while 
+
+(3) will remain the same size
+
+(1)--->(2)--->(free small chunk (3))--->(4)--->(5)--->(1 free big chunk)
+
+------------------------------------------------------------------------------------------------------
+
+~~~~~~~~~~~~~~~~~~~
+Java Implementation
+~~~~~~~~~~~~~~~~~~~
+
+Demo of best, worst, first fit policy working fine :-)
+
+C:\Users\Alifa\Desktop\lc3-backup\eclipse\Ostep\src\chapter\Freespace.java
