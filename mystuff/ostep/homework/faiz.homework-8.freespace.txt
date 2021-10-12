@@ -967,3 +967,21 @@ Java Implementation
 Demo of best, worst, first fit policy working fine :-)
 
 C:\Users\Alifa\Desktop\lc3-backup\eclipse\Ostep\src\chapter\Freespace.java
+
+What happens when there is no space available? The second allocation below will return -1 (null in my 
+
+java Implementation). I was going to implement a C version of my Java linked list but since it would
+
+have been similar I decided to not go ahead with that. Instead what would be interesting is to use malloc
+
+and create an illusion of freespace from which once would allocate chunks (for this see my c Implementation 
+
+below). There is also a walkthrough.
+
+dos>python malloc.py -S 10 -H 0 -p WORST -s 0 -A +7,+4
+
+~~~~~~~~~~~~~~~~
+C Implementation
+~~~~~~~~~~~~~~~~
+
+C:\Users\Alifa\Desktop\cygwin64-workspace\mystuff\ostep\homework\freespace\freespace.c
