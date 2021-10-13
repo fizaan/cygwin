@@ -991,3 +991,5 @@ QEMU Implementation
 ~~~~~~~~~~~~~~~~~~~
 
 See C:\Users\Alifa\Desktop\osdev\batch\kernel\heap\kernelostep.c
+
+This concludes freespace chapter! Maybe now rewatch poncho's videos on malloc again? Maybe later.
