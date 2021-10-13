@@ -985,3 +985,9 @@ C Implementation
 ~~~~~~~~~~~~~~~~
 
 C:\Users\Alifa\Desktop\cygwin64-workspace\mystuff\ostep\homework\freespace\freespace.c
+
+~~~~~~~~~~~~~~~~~~~
+QEMU Implementation
+~~~~~~~~~~~~~~~~~~~
+
+See C:\Users\Alifa\Desktop\osdev\batch\kernel\heap\kernelostep.c
