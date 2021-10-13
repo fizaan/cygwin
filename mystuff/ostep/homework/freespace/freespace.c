@@ -75,6 +75,8 @@ struct chunk * kmalloc(int size, char * id) {
 
             temp->nxt->id = id;
 
+            freespace->size -= temp->nxt->size;
+
             return temp->nxt; 
         }
         
@@ -87,6 +89,8 @@ struct chunk * kmalloc(int size, char * id) {
             temp->nxt->isFree = false;
 
             temp->nxt->id = id;
+
+            freespace->size -= temp->nxt->size;
 
             return temp->nxt; 
 
@@ -147,7 +151,10 @@ struct chunk * kmalloc(int size, char * id) {
 
 } // end kmalloc
 
-int kfree(struct chunk * c) { c->isFree = true; } 
+int kfree(struct chunk * c) { 
+    c->isFree = true; 
+    freespace->size += c->size;
+} 
 
 
 int main() {
