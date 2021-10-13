@@ -993,3 +993,9 @@ QEMU Implementation
 See C:\Users\Alifa\Desktop\osdev\batch\kernel\heap\kernelostep.c
 
 This concludes freespace chapter! Maybe now rewatch poncho's videos on malloc again? Maybe later.
+
+Update Oct 13 12:46 pm - I didn't watch poncho's video but I did go over the heaplite kmalloc algorithm and found
+
+a major BUG while I was writing freespace2.c to see if that algorithm works with these tests above. The algorithm
+
+is here --- C:\Users\Alifa\Desktop\osdev\batch\kernel\headers\heap\heaplite.h.
