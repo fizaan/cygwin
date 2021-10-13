@@ -59,7 +59,7 @@ void kprint() {
 
 struct chunk * kmalloc(int size, char * id) {
 
-    if(size > freespace->size) printf("Out of memory");
+    if(size + sizeof(struct chunk) > freespace->size) return NULL;
 
     struct chunk * temp = freespace;
 
