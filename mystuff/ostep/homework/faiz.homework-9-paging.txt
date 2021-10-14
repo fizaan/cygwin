@@ -1,0 +1,294 @@
+What is paging?
+
+"Paging is to chop up address space of a program into fixed-sized pieces. Instead of splitting up a 
+process’s address space into some number of variable-sized logical segments (e.g., code, heap, stack), 
+we divide it into fixed-sized units, each of which we call a page."
+
+What we used to do:
+
++-------------------+
++   code            +
++                   +
++                   +   <- variable sized chunk
++                   +
++                   +
++                   +
++-------------------+
++   heap            +
++                   +
++                   +
++                   +
++                   +
++                   +
++                   +
++                   +
++                   +
++                   +
++                   +
++                   +
++                   +
++-------------------+
++                   +
++                   +
++                   +
++   stack           +
++                   +
++                   +
++-------------------+
+
+What paging does:
+
++-------------------+ vpg0  (virtual page 0)
++   code            + <---- fixed-sized chunk
++-------------------+
+
++-------------------+ vpg1
++   heap            +
++-------------------+
+
++-------------------+ vpg2
++   stack           +
++-------------------+
+
+"Correspondingly, we view physical memory as an array of fixed-sized slots called page frames; each
+of these frames can contain a single virtual-memory page"
+
+Physical memory
++-------------------+ 
++     free          +  PF0 (page frame 0) unused - maybe reserved for OS
++-------------------+
+
++-------------------+ 
++     free          +  PF1 unused
++-------------------+
+
++-------------------+ 
++    vpg0           +  PF2 (contains vpg0)
++-------------------+
+
++-------------------+ 
++     free          +  PF3 unused
++-------------------+
+
++-------------------+ 
++    vpg1           +  PF4 (contains vpg1)
++-------------------+
+
++-------------------+ 
++    vpg2           +  PF5 (contains vpg2)
++-------------------+
+
++-------------------+ 
++     free          +  PF6 unused
++-------------------+
+
+Fayyaz: Each PF is either empty (free) or it may contain exactly 1 VP
+
+"As you can see in the diagram, the pages of the virtual address space have been placed at different 
+locations throughout physical memory"
+
+Fayyaz: The OS/kernel places the virtual pages at different locations in physical memory. How it does
+that is still not known to me - something I will find out in coming chapters maybe.
+
+"To record where each virtual page of the address space is placed in physical memory, the operating 
+system usually keeps a per-process data structure known as a page table. The major role of the page 
+table is to store address translations for each of the virtual pages of the address space, thus 
+letting us know where in physical memory each page resides."
+
+Page table:
++-------------------+-----------------+ 
+|     vpg0          |  PF2            +
++-------------------------------------+
+|     vpg1          |  PF4            +
++-------------------------------------+
+|     vpg2          |  PF5            +
++-------------------------------------+
+
+"It is important to remember that this page table is a per-process data structure"
+
+Fayyaz: Lets say we now have a physical memory of size 128 bytes and each processes' address space
+is 64 bytes. If we split the address space into 4 fixed chunks this means each chunk is going to be
+64 / 4 = 16 bytes which will look something like figure 18.2 on page 2. Note that because an address
+space is 64 bytes which means if we start from 0 we can address upto the 63rd byte. This requires
+6 bits.
+
+111111 = 63
+
+And because we know that the total number of virtual pages for this address space is 4 (0 to 3) - 
+this can be represented by the TOP 2 bits of those 6 bits. The remaining 4 bits are used for the 
+offset into the page frame. So:
+
+            00 = 0
+            01 = 1
+            10 = 2
+            11 = 3
+
+Hence, the vp number can be addressed with the top 2 bits. So if a virtual address of 21 is 
+requested by a process this will translate to:
+
+21 = 010101 = 01 0101 
+
+VPN = 01 (Lookup the page table for this process to see what vp1 maps to? - it maps to PF4 so this 
+returns 4)
+
+The physical address is thus:
+
+    100 0101 = 69
+
+Note that in the book, they map vp1 to PF7 and they get:
+
+    111 0101 = 117
+------------------------------------------------------------------------------------------------
+
+"Because we know the page size (16 bytes), we can further divide the virtual address as follows"
+
+Fayyaz: What the heck does that mean??
+------------------------------------------------------------------------------------------------
+
+Fayyaz: Where are page tables stored? Short answer: somewhere in physical memory like PF0
+
+"Because page tables are so big, we don’t keep any special on-chip hardware in the MMU to store the 
+page table of the currently-running process. Instead, we store the page table for each process in 
+memory somewhere."
+
+"In Figure 18.4 (page 5) is a picture of a page table in OS memory;
+see the tiny set of translations in there?"
+
++-------------------+ 
++     Page Table    +  PF0
++     3 7 5 2       +
++-------------------+
+
+Fayyaz: "Tiny set of translations" - what the heck are they talking about?  They are referring to 
+the mappings:
+
+    vpg0 --> 3
+    vpg1 --> 7
+    vpg2 --> 5
+    vpg3 --> 2
+---------------------------------------------------------------------------------------------------
+
+Fayyaz: WHAT is stored in a page table for each process? Firs of all, how does the OS even get to 
+the correct page table for that process? 
+
+"Let’s talk a little about page table organization. The page table is just a data structure that is 
+used to map virtual addresses (or really, virtual page numbers) to physical addresses (physical 
+frame numbers). Thus, any data structure could work. The simplest form is called a linear page
+table, which is just an array. The OS indexes the array by the virtual page number (VPN), and looks 
+up the page-table entry (PTE) at that index in order to find the desired physical frame number 
+(PFN). For now, we will assume this simple linear structure"
+
+Fayyaz: So based on the explanation above:
+
+PTE = LinearPageTableArray[ vpg2 (VPN virtual page number) ] 
+
+PTE contains the PFN (represented by some number of bits)
+
+Knowing above, explain how the following virtual address (21) gets translated (ignore fetch for now). 
+This is NOT AT&T syntax! Assume VPN has 2 bits same as above.
+
+mov eax, 21 ; put 21 into eax register
+
+21 = 0000000000000000 0000000000 010101 (32 bits in x86)
+
+"the hardware must know where the page table is for the currently-running process. Let’s assume for 
+now that a single page-table base register contains the physical address of the starting location 
+of the page table"
+
+hence...
+
+address of LinearPageTableArray  is stored in some page-table base register
+
+LinearPageTableArray = BaseRegister
+
+VA = 21
+VPN = (VA & 110000b) >> 4 = we get vpg1
+PTE = LinearPageTableArray[ VPN * sizeof(PTE)] 
+
+Now that we have the PTE, we need to extract the PFN. In x86, the PFN is bits 31 - 12:
+
+0000000000000000 0000 000000 010101
+
+which gives us:
+
+0000 0000 0000 0000 0000 000000 010101
+
+therefore:
+
+PFN = VA & 0xfffff
+Offset = VA & 0xf
+
+finally, the physical address:
+
+PA = PFN << 4 | offset
+
+eax = PA
+
+Note: the PTE does NOT contain the VPN! We only get the VPN from the VA
+
+VOILA!
+-------------------------------------------------------------------------------------------------
+
+~~~~~~~~~~~~~~~~~~~~
+The final trace 18.5
+~~~~~~~~~~~~~~~~~~~~
+
+"For this example, we assume a virtual address space of size 64KB (unrealistically small). We also 
+assume a page size of 1KB....Let’s assume we have a linear (array-based) page table and that it is 
+located at physical address 1KB (1024)."
+
++-------------------+ 0
++  Page table[0]    + PF0 
++-------------------+ 1023
+
++-------------------+ 1024
++                   + PF1 
++-------------------+ 2047
+
++-------------------+ 2048
++                   + PF2 
++-------------------+ 3071
+
+"When it runs, each instruction fetch will generate two memory references: one to the page table to 
+find the physical frame that the instruction resides within, and one to the instruction itself to 
+fetch it to the CPU for processing. In addition, there is one explicit memory reference in the form 
+of the mov instruction; this adds another page table access first (to translate the array virtual 
+address to the correct physical one) and then the array access itself."
+
+Fayyaz: "When it runs, each instruction fetch will generate two memory references" - Why two? Let's 
+take the mov instruction, first is the fetch to actually get the mov instruction:
+
+The fetch requires two memory access: 
+    (1) to find the PF where this instruction resides (involves the Lookup table)
+    (2) to fetch the cpu instruction from the actual physical address derived from (1)
+
+Fayyaz: And then what? The mov instruction has nother PF check (another memory reference) to 
+generate the PA for the location of the array followed by accessing THAT array itself (another 
+memory ref). In total there are 4 memory references JUST FOR THE MOV INSTRUCTION! That's why you
+see 4 dots for the mov instruction on each x-axis.
+
+Per loop here are the total memory references (access): total 10
+
+    move:   4
+    inc:    2
+    cmp:    2
+    jne:    2
+    ----------
+    10
+    ----------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
