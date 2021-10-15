@@ -220,7 +220,9 @@ Offset = VA & 0xf
 
 finally, the physical address:
 
-PA = PFN << 4 | offset
+PA = PFN << 4* | offset
+
+*can you guess why we shift by 4? Because the offset is 4 bits.
 
 eax = PA
 
@@ -277,9 +279,64 @@ Per loop here are the total memory references (access): total 10
     10
     ----------
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+paging-linear-translate.py
+~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
+dos>cd C:\Users\Alifa\Desktop\ostep.org\ostep-homework\vm-paging
 
+dos>python paging-linear-translate.py
 
+ARG address space size 16k
+ARG phys mem size 64k
+ARG page size 4k
+
+Fayyaz: Lets say we now have a physical memory of size 64k and each processes' address space
+is 16k. If we split the address space into 4 fixed chunks this means each chunk is going to be
+16 / 4 = 4k. Note that because an address space is 16k which means if we start from 0 we can 
+address upto the 16,383 byte per process. This requires 14 bits = 11 1111 1111 1111 = 0x3fff
+
+And because we know that the total number of virtual pages for this address space is 4 (0 to 3) - 
+this can be represented by the TOP 2 bits of those 14 bits. The remaining 12 bits are used for the 
+offset into the page frame. So:
+
+            00 = 0
+            01 = 1
+            10 = 2
+            11 = 3
+
+Hence, the vp number can be addressed with the top 2 bits. Knowing this, translate the following 
+VA to PA: 0x00003229 which in binary is: 11 0010 0010 1001
+
+VA = 0x00003229
+VPN = (VA & 0x3fff) >> 12 = we get vpg3 (VPN = 3)
+PTE = LinearPageTableArray[ VPN* ] = 0x80000006 = 10000000000000000000000000000110
+
+*Note that we are not doing this here: VPN * sizeof(PTE) Why? Because they haven't specified
+the PTE size.
+
+The top most bit is 1 which makes this valid and the remaining entry is 110 = 6. So VPN 3 maps
+to PF 6 i.e PFN = 6. Now need to calculate th offset.
+
+Offset = VA & 0xfff = 0010 0010 1001
+PA  = 6 << 12 | 0010 0010 1001
+
+Using Java:
+
+int x=0b110;
+int y=0b1000101001;
+int z= x << 12 | y; // can you guess why we shift by 12? 
+                    // because the offset (y) is 12 bits
+z = 11000 1000101001
+
+System.out.printf("%x, %d",z,z); // 0x6229, 25129
+
+Full solution: C:\Users\Alifa\Desktop\lc3-backup\eclipse\Ostep\src\chapter\PLinearTranslate.java
+3229 ---> 6229
+1369 is invalid
+1e80 is invalid
+2556 is invalid      
+3a1e ---> 6a1e
 
 
 
