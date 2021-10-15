@@ -295,6 +295,7 @@ Fayyaz: Lets say we now have a physical memory of size 64k and each processes' a
 is 16k. If we split the address space into 4 fixed chunks this means each chunk is going to be
 16 / 4 = 4k. Note that because an address space is 16k which means if we start from 0 we can 
 address upto the 16,383 byte per process. This requires 14 bits = 11 1111 1111 1111 = 0x3fff
+Notice that 1111 1111 1111, which is the offset, fits pefectly into the page size (4k)
 
 And because we know that the total number of virtual pages for this address space is 4 (0 to 3) - 
 this can be represented by the TOP 2 bits of those 14 bits. The remaining 12 bits are used for the 
@@ -316,7 +317,7 @@ PTE = LinearPageTableArray[ VPN* ] = 0x80000006 = 100000000000000000000000000001
 the PTE size.
 
 The top most bit is 1 which makes this valid and the remaining entry is 110 = 6. So VPN 3 maps
-to PF 6 i.e PFN = 6. Now need to calculate th offset.
+to PF 6 i.e PFN = 6. Now need to calculate th offset. Offset is the last 12 bits of the VA
 
 Offset = VA & 0xfff = 0010 0010 1001
 PA  = 6 << 12 | 0010 0010 1001
@@ -338,6 +339,165 @@ Full solution: C:\Users\Alifa\Desktop\lc3-backup\eclipse\Ostep\src\chapter\PLine
 2556 is invalid      
 3a1e ---> 6a1e
 
+~~~~~~~~
+homework
+~~~~~~~~
+
+Q1)
+
+dos>python paging-linear-translate.py -P 1k -a 1m -p 512m -v -n 0
+dos>python paging-linear-translate.py -P 1k -a 2m -p 512m -v -n 0
+dos>python paging-linear-translate.py -P 1k -a 4m -p 512m -v -n 0
+
+How should page-table size change as the address space grows? Direcly proportional.
+
+dos>python paging-linear-translate.py -P 1k -a 1m -p 512m -v -n 0
+dos>python paging-linear-translate.py -P 2k -a 1m -p 512m -v -n 0
+dos>python paging-linear-translate.py -P 4k -a 1m -p 512m -v -n 0
+
+As the page size grows? Inversely proportional
+
+Q2)
+
+dos>python paging-linear-translate.py -P 1k -a 16k -p 32k -v -u 0
+
+dos>python paging-linear-translate.py -P 1k -a 16k -p 32k -v -u 50
+dos>python paging-linear-translate.py -P 1k -a 16k -p 32k -v -u 75
+dos>python paging-linear-translate.py -P 1k -a 16k -p 32k -v -u 100
+
+ARG address space size 16k
+ARG phys mem size 32k
+ARG page size 1k
+
+Use your java program to calculate above Q2
+C:\Users\Alifa\Desktop\lc3-backup\eclipse\Ostep\src\chapter\PLinearTranslate.java
+
+Since page size is now reduced to 1k, we need more entries in the table. Why ? because 16 / 16 = 1. 
+We now need 16 entries. And since we now need to index 16 entries we need top 4 bits of the 14 bits
+(address space is still 16k as above so we still use 14 bits). 
+
+    1111 1111 1111 11
+
+This means the offsetShift is now 10
+
+    int offsetShift = 10;
+
+Hence we get:
+3a39 is invalid
+3ee5 is invalid
+33da is invalid
+39bd is invalid
+13d9 is invalid
+
+This was pretty obvious since -u is 0
+
+dos>python paging-linear-translate.py -P 1k -a 16k -p 32k -v -u 25
+
+3986 is invalid
+2bc6 ---> 4fc6
+1e37 is invalid
+671 is invalid
+1bc9 is invalid
+
+dos>python paging-linear-translate.py -P 1k -a 16k -p 32k -v -u 50
+
+3385 ---> 3f85 [VPN 12]
+231d is invalid [VPN 8]
+e6 ---> 60e6 [VPN 0]
+2e0f is invalid [VPN 11]
+1986 ---> 7586 [VPN 6]
+
+dos>python paging-linear-translate.py -P 1k -a 16k -p 32k -v -u 75
+
+2e0f ---> 4e0f [VPN 11]
+1986 ---> 7d86 [VPN 6]
+34ca ---> 6cca [VPN 13]
+2ac3 ---> ec3 [VPN 10]
+12 ---> 6012 [VPN 0]
+
+dos>python paging-linear-translate.py -P 1k -a 16k -p 32k -v -u 100
+
+2e0f ---> 4e0f [VPN 11]
+1986 ---> 7d86 [VPN 6]
+34ca ---> 6cca [VPN 13]
+2ac3 ---> ec3 [VPN 10]
+12 ---> 6012 [VPN 0]
+
+What happens as you increase the percentage of pages that are allocated in each address space?
+- You get less seg faults (more valid translations)
+
+Q3)
+
+This looks normal: -P 8 -a 32 -p 1024 -v -s 1
+dos>python paging-linear-translate.py -P 8 -a 32 -p 1024 -v -s 1
+
+
+This looks normal too: -P 8k -a 32k -p 1m -v -s 2
+dos>python paging-linear-translate.py -P 8k -a 32k -p 1m -v -s 2
+
+This is definitely not normal: only 1m for page size? We will have 256 chunks for an address space
+of 256m and alot of PTEs!! 
+-P 1m -a 256m -p 512m -v -s 3
+
+dos>python paging-linear-translate.py -P 1m -a 256m -p 512m -v -s 3
+
+Note: If you want to solve the first two then you need to adjust the number of bits that can address
+that address space. Don't do that last one it has 256 PTEs!!
+
+dos>python paging-linear-translate.py -P 8 -a 32 -p 1024 -v -s 1
+dos>python paging-linear-translate.py -P 8k -a 32k -p 1m -v -s 2
+
+Let's solve the first one:
+
+ARG address space size 32
+ARG phys mem size 1024
+ARG page size 8
+
+Page Table (from entry 0 down to the max size)
+  [       0]  0x00000000
+  [       1]  0x80000061
+  [       2]  0x00000000
+  [       3]  0x00000000
+
+VA 0x0000000e (decimal:       14) --> PA or invalid address?
+VA 0x00000014 (decimal:       20) --> PA or invalid address?
+VA 0x00000019 (decimal:       25) --> PA or invalid address?
+VA 0x00000003 (decimal:        3) --> PA or invalid address?
+VA 0x00000000 (decimal:        0) --> PA or invalid address?
+
+32 / 8 = 4 hence 4 PTEs. Since address space is 32 we need a total of 5 bits (0-31) and top 2
+for selecting the VPN. 11 111
+
+0x0000000e: 01 110: vpn = 1: 0x80000061: This is valid: PA: 1100001 110: 0x30e
+0x00000014: 10 100: vpn = 2: 0x00000000: invalid
+0x00000019: 11 001: vpn = 3: 0x00000000: invalid
+0x00000003: 00 011: vpn = 0: 0x00000000: invalid
+0x00000000: 00 000: vpn = 0: 0x00000000: invalid
+
+Let's solve the second one:
+
+ARG address space size 32k
+ARG phys mem size 1m
+ARG page size 8k
+
+32 / 8 = 4 hence 4 PTEs. Since address space is 32k we need a total of 15 bits (0-32767) and top 2
+for selecting the VPN. 11 1111111111111
+
+Page Table (from entry 0 down to the max size)
+  [       0]  0x80000079
+  [       1]  0x00000000
+  [       2]  0x00000000
+  [       3]  0x8000005e
+
+0x000055b9: 10 1010110111001: vpn = 2: 0x00000000: invalid
+0x00002771: 01 0011101110001: vpn = 1: 0x00000000: invalid
+0x00004d8f: 10 0110110001111: vpn = 2: 0x00000000: invalid
+0x00004dab: 10 0110110101011: vpn = 2: 0x00000000: invalid
+0x00004a64: 10 0101001100100: vpn = 2: 0x00000000: invalid
+
+Q4) Not done. Address space size should never be > physical memory
+
+This concludes paging homework :) You may want to revist Q1 and Q4
 
 
 
