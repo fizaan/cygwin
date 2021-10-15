@@ -499,6 +499,17 @@ Q4) Not done. Address space size should never be > physical memory
 
 This concludes paging homework :) You may want to revist Q1 and Q4
 
+~~~~~~~~~~
+Conclusion
+~~~~~~~~~~
+
+The virtual address (VA) contains the VPN (vpg#) and the offset into the page frame (PF) of 
+physical memory. VPN is usually some top bits of the VA while remaining bits makeup the offset. 
+From the VPN we index the page table and find the page table entry (PTE) which contains the valid
+bit (among other bits like access level) and finally the page frame number (PFN). The final 
+physical (PA) is then calculated by first shifting the PFN to the left by the number of offset bits
+and ORing it with the offset.
+
 
 
 
