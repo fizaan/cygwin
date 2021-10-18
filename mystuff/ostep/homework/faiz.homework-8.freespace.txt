@@ -999,3 +999,13 @@ Update Oct 13 12:46 pm - I didn't watch poncho's video but I did go over the hea
 a major BUG while I was writing freespace2.c to see if that algorithm works with these tests above. The algorithm
 
 is here --- C:\Users\Alifa\Desktop\osdev\batch\kernel\headers\heap\heaplite.h.
+
+~~~~~~~~~~~~~~~~~~
+LC3 Implementation
+~~~~~~~~~~~~~~~~~~
+
+Oct 15-18 2021 - You wrote this AFTER 'intro to paging'. It's not perfect (process names not shown)
+
+but it works as exptected - like the C and QEMU Implementation :-). Took 3 days. Finished on Oct 18
+
+See C:\Users\Alifa\Desktop\lc3-LDE\lc3-contextswitch\ant\src\freelist.lct
