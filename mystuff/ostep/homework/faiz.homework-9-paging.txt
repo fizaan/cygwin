@@ -140,9 +140,22 @@ Note that in the book, they map vp1 to PF7 and they get:
     111 0101 = 117
 ------------------------------------------------------------------------------------------------
 
-"Because we know the page size (16 bytes), we can further divide the virtual address as follows"
+"Because we know the page size (16 bytes), we can further divide the virtual address as follows" -
+bottom of pg 3 of book
 
-Fayyaz: What the heck does that mean??
+Fayyaz: What the heck does that mean?? 
+-They are dividing the VA into 2 components, the VPN and the offset. The offset is derived from the 
+page size (See conclusion at the end). If the page size is 16 then we need 4 bits to address 
+that, i.e 2^4 = 16. That leaves us with the top 2 bits which we use as the VPN. Simple.
+
+"Once this *physical address* is known, the hardware can fetch the PTE from memory, extract the PFN, 
+and concatenate it with the offset from the virtual address to form the desired physical address"
+- pg 8 of book. 
+
+Fayyaz: What *physical address*? They are talking about the address of the page table. Not the final
+PA. They should have worded it like this: Once this physical address is known, the hardware can 
+fetch the PTE from THAT address
+
 ------------------------------------------------------------------------------------------------
 
 Fayyaz: Where are page tables stored? Short answer: somewhere in physical memory like PF0
@@ -509,6 +522,50 @@ From the VPN we index the page table and find the page table entry (PTE) which c
 bit (among other bits like access level) and finally the page frame number (PFN). The final 
 physical (PA) is then calculated by first shifting the PFN to the left by the number of offset bits
 and ORing it with the offset.
+
+Updated conclusion Oct 19 2021
+------------------------------
+
+Don’t be concerned with the Physical Memory. Just focus on the Address Space and the Page size 
+because these two determine the number of PTEs (Page Table Entry) and thus, the size of the page 
+table. A PTE holds the PFN which is then combined (ORed) with the offset (taken from the virtual 
+address aka VA). 
+
+Hence the offset (bottom bits in VA) depends on the page size. For example, a cpu with address space
+of 32 bits with a page size of 4K will have a 12 bit offset: 2^12 = 4K, while the top 20 bits make 
+up the VPN which means there are 2^20 PTEs (translations/mappings)!!
+
+If the page size is static then so is the offset; then any increase in the address space would mean 
+more VPN bits (top bits in VA) and thus more PTEs and a bigger page table to hold those entries. 
+
+If the address space is static then as the page size grows so does the offset, meaning the # of VPN 
+bits decrease which means LESS PTEs and a smaller page table!  Hence increasing the page size can 
+help in making the page table smaller.
+
+How should page table size change as the address space grows? Assuming page size remains the same, 
+page table size will increase with address space growth. 
+
+How should page table size change as page size grows? Assuming address space remains the same, 
+page table size will shrink as page size increases since there will be less PTEs.
+
+Based on this updated conclusion let's revisit Q1.
+
+-P 1k -a 1m -p 512m -v -n 0 : 1024 entries
+-P 1k -a 2m -p 512m -v -n 0 : 2048 entries
+-P 1k -a 4m -p 512m -v -n 0 : 4095 entries
+
+Here we see the page size is static so as we expand the address space we will get more PTEs and a 
+larger table per process.
+
+-P 1k -a 1m -p 512m -v -n 0 : 1024 entries
+-P 2k -a 1m -p 512m -v -n 0 : 512 entries
+-P 4k -a 1m -p 512m -v -n 0 : 255 entries
+
+Here the address space is statis so as we expand the page size (-P) the VPN size decreases meaning
+we have less VPNs to deal with and hence fewer PTEs and a smaller table per process.
+
+Why not use big pages in general? Good question. I think its because that would defeat the purpose
+of virtualizing memory. Perhaps?
 
 
 
