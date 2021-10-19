@@ -567,6 +567,19 @@ we have less VPNs to deal with and hence fewer PTEs and a smaller table per proc
 Why not use big pages in general? Good question. I think its because that would defeat the purpose
 of virtualizing memory. Perhaps?
 
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Let's crash this program!
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+MIPs supports a 32-bit address space (2^32 = 4GB) with a 4K page size. This means we have 20 bits 
+VPN and 12 bits offset (2^12 = 4K). It can generate a PA of 36 bits (24 bit PFN + 12 bit offset) 
+thereby supporting upto 64GB (2^36) of Physical memory. Hence, this might crash the program. Expect 
+to see 2^20 (~ 1m) PTEs! And that's just for 1 process. Imagine if there were more processes!
+
+dos>python paging-linear-translate.py -P 4k -a 4g -p 64g -v -n 0
+
+"Error: must use smaller sizes (less than 1 GB) for this simulation."
+
 
 
 
