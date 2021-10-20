@@ -1,0 +1,192 @@
+~~~~~~~~
+Homework
+~~~~~~~~
+
+Refer to tlbs/measure.c
+
+"..let’s say the TLB size of a machine happens to be 4 (which would be very small, but useful for 
+the purposes of this discussion). If you write a program that touches 4 or fewer pages, each access
+should be a TLB hit, and thus relatively fast."
+
+Fayyaz: This doesn't makes sense. If the TLB starts off to be empty each access will AT FIRST be a 
+MISS even if we are accessing 4 or less pages.
+
+int jump = PAGESIZE / sizeof(int);
+
+Assuming page size of 4k: 4k / 4 = 1024. Thus a page can hold 1024 integers. 
+
+Assuming this is 1 page holding 1024 random integers. I will show this as following. This means 
+that all intgers 3-m (and more...) are inside ONE SINGLE PAGE: i.e a[3], a[6], a[1]...a[m] are all
+that page.
+
++-------+ 0
++   3   +
++-------+ 4
++   6   +
++-------+ 8
++   1   +
++-------+ 16
++   4   +
++-------+
++   n   +
++-------+
++   m   +
++-------+ 4096 (next page starts)
++       +
++-------+ 4100
++       +
++-------+ 4104
+
+"In this loop, one integer per page of the array a is updated, up to the number of pages specified 
+by NUMPAGES"
+
+int jump = PAGESIZE / sizeof(int);
+for (i = 0; i < NUMPAGES * jump; i += jump)
+a[i] += 1;
+
+If NUMPAGES = 0, the loop never gets executed so let's start from 1:
+
+int NUMPAGES = 1
+int PAGESIZE = 4096
+
+int * a = (int *) malloc(NUMPAGES * jump * sizeof(int)); // if NUMPAGES  is 1
+                                                         // this is saying give me
+                                                         // space for 1024 integers
+                                                         // i.e 1 PAGESIZE
+
+or.. 
+
+int * a = (int *) malloc(NUMPAGES * PAGESIZE);
+
+---------------------------------------------------------------------------------------
+See tlbs/measure.c
+
+This program was run in cygwin and in dev08.
+
+>./out.bin > cygwin.csv
+>./measure.bin > gscgikdcapwsa08.csv
+
+Both csv files were then saved as excel files and I generated a graph for each using help from
+youtube "How to make a line graph in Excel" by Helpful DIY. Data from cygwin cannot be determined
+but I can see a two-level heirarchy of TLBs - one at 512 pages, then another at 4096 pages. Also
+two-level it seems.
+
+Note, you can even plot a graph using jupyter but you need to be running on a local server:
+
+%matplotlib inline
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats
+graph = np.genfromtxt('cygwin.csv', delimiter=',')
+-------------------------------------------------------------------------------------------
+
+Questions!
+
+Q1) I had to use clock_gettime and long long to measure time in ns. Also I had to remove the outer
+loop as it was give too large values.
+
+Q2-5) Not done. Q5 is important
+
+Q6) Not done but is important!
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Fayyaz notes on this chapter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Page 3: "As you can see, the array’s first entry (a[0]) begins on (VPN=06, offset=04); only three 
+4-byte integers fit onto that page."
+
+Fayyaz: Why 3 and not 4? 16 bytes / 4 should means 4 integers should fit in 1 page, no? Yes, but 
+a[0] starts at offset 4 not 0
+
+Page 4: "Although this is not too high (indeed, we desire hit rates that approach 100%), it is 
+non-zero, which may be a surprise"
+
+Fayyaz: Why is that a surprise? Thanks to spatial locality, we have a hit ratio of > 0.
+
+Page 6: "Let’s discuss a couple of important details. First, the return-from-trap instruction needs 
+to be a little different than the return-from-trap we saw before when servicing a system call. 
+In the latter case, the return-fromtrap should resume execution at the instruction after the trap 
+into the OS,just as a return from a procedure call returns to the instruction immediately following 
+the call into the procedure. In the former case, when returning from a TLB miss-handling trap, 
+the hardware must resume execution at the instruction that caused the trap; this retry thus lets
+the instruction run again, this time resulting in a TLB hit. Thus, depending on how a trap or 
+exception was caused, the hardware must save a different PC when trapping into the OS, in order
+to resume properly when the time to do so arrives."
+
+Fayyaz: Not sure if I agree with this statement 'depending on how a trap or exception was caused, 
+the hardware must save a different PC when trapping into the OS'. Because technically if the next
+instruction is a recursive call then we CAN save the next PC as we do in any function call.
+
+Example:
+
+function translateAddress() {
+if (found)
+    GOOD!
+else
+    lookuptable
+    insert entry
+    translateAddress();
+}
+
+Page 7: "..when running the TLB miss-handling code, the OS needs to be extra careful not to cause 
+an infinite chain of TLB misses to occur."
+
+Fayyaz: What the heck does that mean? I have no clue.
+
+Page 8: "..fully associative. Basically, this just means that any given translation can be anywhere
+in the TLB, and that the hardware will search the entire TLB in parallel to find the desired 
+translation."
+
+Fayyaz: What do they mean by parallel? It just means they iterate the entire contents of the TLBs 
+one by one.
+
+Page 8: "ASIDE: TLB VALID BIT 6= PAGE TABLE VALID BIT"
+
+Fayyaz: Instead of invalidating the TLBs entries upon reboot or context switch, why not just remove
+them completely? Saying that a TLB entry is invalid is the same as saying it doesn't exist, no? 
+YES! - Read page 9.
+
+Page 11: "for example, a 'reasonable' policy such as LRU behaves quite unreasonably when a program 
+loops over n + 1 pages with a TLB of size n; in this case, LRU misses upon every access, whereas 
+random does much better."
+
+Fayyaz: I don't quite get this fully so go over it again.
+
+Page 11: "However, as you can see in the TLB, there are only 19 bits for the VPN; as it turns out,
+user addresses will only come from half the address space (the rest reserved for the kernel) and 
+hence only 19 bits of VPN are needed"
+
+Fayyaz: That makes sense. 2^20 = fffff = 1048575 = 1M. 2^19 = 7ffff = 524287 = 0.5m
+
+Page 11: "The VPN translates to up to a 24-bit physical frame number (PFN), and hence can support
+systems with up to 64GB of (physical) main memory (2^24 4KB pages)"
+
+Fayyaz: This also makes sense 24 bits | 12 bits offset = 36 bits. 2^36 = 64GB
+
+Page 12: "One question for you: what should the OS do if there are more than 256 (2^8) processes
+running at a time?"
+
+Fayyaz: What are they asking? Well, the ASID is 8 bits which means it can only support 2^8 (256) 
+processes so if one more process comes in the queue, what should happen? The replacement policy 
+should kick in here and replace 1 older TLB entry with the new one or replace the lease used process
+with the new one? Or it should invalidate a previous TLB entry and replace it with this new 
+process? I'm not sure. Read this part again in the book.
+
+Page 13: "In particular, if the number of pages a program accesses in a short period of time 
+exceeds the number of pages that fit into the TLB,.."
+
+Fayyaz: Pages? They mean TLB entries - VPN.
+
+Page 13: "One other TLB issue worth mentioning: TLB access can easily become a bottleneck in the 
+CPU pipeline, in particular with what is called a physically-indexed cache. With such a cache, 
+address translation has to take place before the cache is accessed, which can slow things down 
+quite a bit. Because of this potential problem, people have looked into all sorts of clever ways to
+access caches with virtual addresses, thus avoiding the expensive step of translation in the case 
+of a cache hit. Such a virtuallyindexed cache solves some performance problems, but introduces new 
+issues into hardware design as well."
+
+Fayyaz: CPU pipeline? Hmm..this went over my head lol. Read it again and try to understand what 
+they mean.
+
+---END----
