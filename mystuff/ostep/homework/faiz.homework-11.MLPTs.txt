@@ -1,0 +1,158 @@
+Fayyaz: Refer to Fig 20.3 on pg 6 as you read below
+
+The problem with paging is it takes up too much unncessary space. Consider an address space of 
+14 bits which is 3fff (16KB) and a page size of 64 bytes. We then have a 6-bit offset and an 
+8-bit vpn meaning there will be 2^8 PTEs in each table. Assuming each PTE takes 1 byte the table
+size per process is 256 bytes. This is demonstrated by the following (assume physical memory of
+1m (1024k)). Alot of the space gets wasted because "even though most of the middle regions of the
+address space are not valid, we still require page-table space allocated for those regions" (pg 6)
+
+dos>cd C:\Users\Alifa\Desktop\ostep.org\ostep-homework\vm-paging
+dos>python paging-linear-translate.py -P 64 -a 16k -p 1m -v -n 0
+
+....
+[     252]  0x800024ba
+[     253]  0x80003386
+[     254]  0x80003f64
+[     255]  0x800039f8
+
+Now image if the PTE size is 4 bytes. This means that the table size per process will be 1KB 
+(4x256). MLPT says to break this page table size up into PAGE SIZE (64b) meaning that each 
+table will have 16 pages (1024 / 64 = 16) and can store 16 PTEs (16x4x16) and if ANY of those 16
+pages DO NOT contain a PTE then that page is considered unallocated and thus avaialble for another
+user or process.
+
+Now since each page table is broken into 16 pages, those 16 pages are now 'indexes' into the PAGE 
+DIRECTORY. "As a result, we need four bits of the VPN to index into the directory; we use the top
+four bits of the VPN" from the VA (pg 8). The address of this PD itself is stored in a special 
+register called PDBR. Note that the VPN was 8 bits, now the top 4 bits of those 8 bits form the 
+PDIndex. Now you will ask 'What does the PD hold?' It holds a PAGE DIRECTORY ENTRY (PDE) which 
+should contain the PFN of of the each broken down piece (page) of the PT (page table) as mentioned
+above. Hence (refer to figure 20.5 pg 9):
+
+    VPN = (VA & 0xff00) >> 4
+    offset = VA & 0x2f
+    PDIndex = VPN >> 4 // assume PDIndex is 15
+    
+    PDE = PDBR[PDIndex + sizeof(PDE)]  <---- memory access #1
+    // This results in our page directory, which we now examine 
+    // to make further progress in our translation (pg 8)
+    
+    if(top bit of PDE valid) {
+        PFN = PDE & PFN_PDE_MASK (we get PFN = 101)
+
+        // We are not done here, we need to modify PFN further!
+        // This part is tricky. How do we calculate the PFN?
+        // Remember when we chopped the VPN's top 4 bits
+        // to form the PDIndex? The REMAINING 4 bits form the
+        // 'offset' INTO the broken piece of the PT. Thus:
+
+        // Page table Index:
+        PTI = (VPN & 0xf) * sizeof(PTE)
+
+        PFN = PFN << 4 | PTI
+
+        // You could even do:
+        // PFN = PFN << 4 + PTI
+
+        // Finally we get the address of the PTE:
+        PTE = mem[PFN] <----- memory access #2 // we get 55
+
+        if (top bit of PTE valid and protection ok) {
+            PFN = PTE & PFN_PTE_MASK
+            PFN = PFN << 6 | offset
+            register[PFN] <----- final memory access #3
+        }
+        else
+            raise exception
+    }
+    else 
+        raise exception
+
+- What is the size of the PD? 1 page size i.e 64b meaning if each PDE is 4 bytes then a PD can
+hold 16 indexes. What if the size of the PD increases beyond a page?
+----------------------------------------------------------------------------------------------
+
+"To see if this all makes sense, we’ll now fill in a multi-level page table with some actual
+values, and translate a single virtual address." - pg 9
+
+VA = 0x3F80 - See C:\Users\Alifa\Desktop\lc3-backup\eclipse\Random\src\main\MLPTAddrTrans.java
+
+Note: Even though 0x3f80 is 0011 1111 1000 0000 in binary, the book says the top 4 bits are 1111
+which is confusing because the top 4 bits are actually 0011 (hence why I had to adjust my va in 
+that java file). DO NOT USE JDOODLE FOR THIS! It shows 0x3f80 as 0x3f800!
+------------------------------------------------------------------------------------------------
+
+~~~~~~~~
+homework
+~~~~~~~~
+
+1. page size is 32 bytes meaning a 5-bit page offset
+2. address space is 32k meaning a 15-bit VA, giving us a 10-bit vpn and a 5-bit offset
+3. physical memory is 4k?! what ?? How can address space be > physical memory ?? Oh well:
+    Meaning a PA requires 12 bits (5 for offset, 7 for PFN).
+4. Each page table 'page' holds 32 PTEs: this means each PTE is exactly 1-byte since 32 / 32 = 1.
+
+PTE: 1-byte = 8bits
+
+8       7             0
++-------+-------------+
++ valid | PFN         |
++-------+-------------+
+
+PDE: Also 1-byte
+
+8       7             0
++-------+-------------+
++ valid | PTE         |
++-------+-------------+
+
+Example:
+dos>cd C:\Users\Alifa\Desktop\ostep.org\ostep-homework\vm-smalltables
+dos>python paging-multilevel-translate.py -n 1 -s 0 > output\1.txt
+
+Solve for: 0x611c
+page 108:   83 fe e0 da 7f d4 7f eb be 9e d5 ad e4 ac 90 d6 
+            92 d8 c1 f8 9f e1 ed e9 a1 e8 c7 c2 a9 d1 db ff
+PDBR: 108  (decimal) [This means the page directory is held in this page]
+Virtual Address 611c: Translates To What Physical Address (And Fetches what Value)? Or Fault?
+
+611c = 110 0001 0001 1100
+     = 0110 0001 0001 1100
+
+"...the upper five bits of a virtual address are used to index into a page directory"
+
+This could mean two things - the upper 5 bits of VA are:
+     a) 11000 = 24 or
+     b) 01100 = 12
+
+Let's assumer it's (a). Then our PDE = mem[108 + 24] = men[132] = a1 = 1010 0001
+Let's assumer it's (b). Then our PDE = mem[108 + 12] = men[120] = e4 = 1110 0100
+
+Both are valid PDEs! Nice. Now we extract the PFN.
+
+If (a) 010 0001 <<  5 | 01 000 = 010000101000 = 1064 [Frame/page 33 + index of 8]
+If (b) 110 0100 <<  5 | 001 00 = 110010000100 = 3204 [Frame/page 100 + index of 4]
+
+if (a) page  33:    7f 7f 7f 7f 7f 7f 7f 7f b5 7f 9d 7f 7f 7f 7f 7f 
+                    7f 7f 7f 7f 7f 7f 7f 7f 7f 7f f6 b1 7f 7f 7f 7f
+
+if (b) page 100:    7f 7f 7f 7f 7f 7f 7f 7f 7f 7f 7f 7f 7f 7f 7f 7f 
+                    7f 7f a7 7f 7f 7f 7f 7f 7f 7f 7f 7f 7f e3 7f 7f
+
+if (a) mem[1064] = b5 = 1011 0101 (valid)
+if (b) mem[3204] = 7f = 0111 1111 (invalid)
+
+Now that we know (a) is valid. We proceed:
+
+011 0101 << 5 | 1 1100 = 011010111100 = 1724 [Frame/page 53 + index 28]
+
+So the PA is 1724 = 6BC
+
+page  53:   0f 0c 18 09 0e 12 1c 0f 08 17 13 07 1c 1e 19 1b 
+            09 16 1b 15 0e 03 0d 12 1c 1d 0e 1a 08 18 11 00
+
+mem[6bc] = 08
+ 
+YES YOU GOT THIS RIGHT!!!
+    
