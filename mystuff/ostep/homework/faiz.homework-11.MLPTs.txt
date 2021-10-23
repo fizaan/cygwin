@@ -120,11 +120,17 @@ Virtual Address 611c: Translates To What Physical Address (And Fetches what Valu
 611c = 110 0001 0001 1100
      = 0110 0001 0001 1100
 
-"...the upper five bits of a virtual address are used to index into a page directory"
+"...the upper five bits of a virtual address* are used to index into a page directory"
+
+* I think they meant VPN
 
 This could mean two things - the upper 5 bits of VA are:
      a) 11000 = 24 or
      b) 01100 = 12
+
+Update: I realized since VA is 15 bits the randomly generated addresses even though being 16 bits
+is interpretted to being 15 bits. I.E. none of them translate to more than 15 bits so technically
+by upper 5 bits they literally mean top 5 of those 15 bits so (a) is the correct choice.
 
 Let's assumer it's (a). Then our PDE = mem[108 + 24] = men[132] = a1 = 1010 0001
 Let's assumer it's (b). Then our PDE = mem[108 + 12] = men[120] = e4 = 1110 0100
@@ -155,4 +161,25 @@ page  53:   0f 0c 18 09 0e 12 1c 0f 08 17 13 07 1c 1e 19 1b
 mem[6bc] = 08
  
 YES YOU GOT THIS RIGHT!!!
+
+--------------------------------------------------------------------------------------
+Homework questions
+
+When solving, refer to 
+    - C:\Users\Alifa\Desktop\lc3-backup\eclipse\Ostep\src\chapter\MLPagingPD.java
+
+Q1. #reg = level - 1. So 2-level requires 1, 3-level requirs 2. Each level has its own PD I 
+believe. Not sure: come back to this question.
+
+Q2. Done this many times with success. How many memory references are need each lookup? 
+    - 3, assuming HIT each time (i.e. no invalid entries)
+    1 for PDE
+    1 for PTE
+    1 for the actual value at the PA derived from above two lookups
+
+Q3. Did not do this. Come back to this.
+
+------------------- END -------------------
+
+
     
