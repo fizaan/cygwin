@@ -76,7 +76,7 @@ hold 16 indexes. What if the size of the PD increases beyond a page?
 "To see if this all makes sense, we’ll now fill in a multi-level page table with some actual
 values, and translate a single virtual address." - pg 9
 
-VA = 0x3F80 - See C:\Users\Alifa\Desktop\lc3-backup\eclipse\Random\src\main\MLPTAddrTrans.java
+VA = 0x3F80 - See C:\Users\Alifa\Desktop\lc3-backup\eclipse\Ostep\src\chapter\MLPTAddrTrans.java
 
 Note: Even though 0x3f80 is 0011 1111 1000 0000 in binary, the book says the top 4 bits are 1111
 which is confusing because the top 4 bits are actually 0011 (hence why I had to adjust my va in 
