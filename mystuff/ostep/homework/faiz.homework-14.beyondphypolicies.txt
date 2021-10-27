@@ -208,6 +208,9 @@ dos>python paging-policy.py -p LRU -s 0 -n 10 -c
 dos>python paging-policy.py -p OPT -s 0 -n 10 > output\1.txt
 dos>python paging-policy.py -p OPT -s 0 -n 10 -c
 
+dos>python paging-policy.py -p CLOCK -s 0 -n 10 > output\1.txt
+dos>python paging-policy.py -p CLOCK -s 0 -n 10 -c
+
 -
 
 dos>python paging-policy.py -p FIFO -s 1 -n 10 > output\1.txt
@@ -218,6 +221,9 @@ dos>python paging-policy.py -p LRU -s 1 -n 10 -c
 
 dos>python paging-policy.py -p OPT -s 1 -n 10 > output\1.txt
 dos>python paging-policy.py -p OPT -s 1 -n 10 -c
+
+dos>python paging-policy.py -p CLOCK -s 1 -n 10 > output\1.txt
+dos>python paging-policy.py -p CLOCK -s 1 -n 10 -c
 
 -
 
@@ -230,8 +236,50 @@ dos>python paging-policy.py -p LRU -s 2 -n 10 -c
 dos>python paging-policy.py -p OPT -s 2 -n 10 > output\1.txt
 dos>python paging-policy.py -p OPT -s 2 -n 10 -c
 
+dos>python paging-policy.py -p CLOCK -s 2 -n 10 > output\1.txt
+dos>python paging-policy.py -p CLOCK -s 2 -n 10 -c
+
 ----------------------------------------------------------------------------
 
 Q2-5 NOT DONE! Come back to them.
 
 TODO: CLOCK policy
+---------------------------------------------------------------------------
+
+Clock policy algorithm - I had to cheat here by looking at the paging-policy.py source. By 
+reference bits they are just iterating the number of times it will take to set each bit to 0.
+Note that because they randomly select a page to start from, your output will not match theirs.
+
+ref = array of references
+
+for each x in access sequence
+    if x in cache
+        hit!
+    else {
+        miss
+        if cache == full ?
+            yes {
+                while(true) {
+                    toEvict = get some random page from cache
+                    if(ref(toEvict) > 0) ref(toEvict)--;
+                    else break;
+                
+                find index of toEvict from cache and replace with new one  
+                cache -> x takes position of evicted page
+            }
+            no {
+                cache -> x
+                cache++
+            }
+    }
+
+    if x not in ref
+        ref(x) -> 1
+    else {
+        ref(x)++
+        if(ref(x) > bits) ref(x) = bits
+    }
+
+
+
+
