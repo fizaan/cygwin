@@ -3,6 +3,18 @@
 
 // gcc -o out.bin arrayptr.c -Wall
 
+/*
+    prints:
+
+    p = ffffcc20
+    a = ffffcc20
+    a = ffffcc20
+    &p = ffffcc18
+
+    p = ffffcc28
+
+*/
+
 int main() {
 
     int a[] = { 1, 2, 3, 4, 5 };
@@ -12,6 +24,9 @@ int main() {
     p = a;
 
     printf("p = %08x\n", p);
+    printf("a = %08x\n", &a);
+    printf("a = %08x\n", a);
+    printf("&p = %08x\n\n", &p);
 
     // Wrong! I'm screwed. I thought this would store
     // the address of a[2] into p but instead
