@@ -4,10 +4,8 @@
 #include <stdbool.h>
 
 // cd /cygdrive/c/Users/Alifa/Desktop/cygwin64-workspace/mystuff/ostep/homework/MIT/
-
 // gcc -o out.bin alloc.c -Wall -Wextra -pedantic
 
-#define end 0x10da00
 #define BY2PG 0x1000
 #define KERNBASE 	 0xf0000000
 #define PDMAP 		 4 * 1024 * 1024
