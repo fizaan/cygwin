@@ -17,6 +17,9 @@
 */
 
 #define BY2PG 0x1000
+
+// 'vm' is a mimication of either 
+// virtual or physical memmory
 char * vm;
 
 
