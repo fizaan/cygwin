@@ -3,6 +3,24 @@
 // cd /cygdrive/c/Users/Alifa/Desktop/cygwin64-workspace/mystuff/ostep/homework/MIT/
 // gcc -o out.bin alloc2.c -Wall -Wextra -pedantic
 
+/*
+Nov 18 10AM (osdev/sources/notes.txt)
+		
+What's the difference between each of these programs?
+
+- C:\Users\Alifa\Desktop\lc3-backup\eclipse\Ostep\src\chapter\Alloc.java
+- C:\Users\Alifa\Desktop\cygwin64-workspace\mystuff\ostep\homework\MIT\alloc.c 
+- C:\Users\Alifa\Desktop\cygwin64-workspace\mystuff\ostep\homework\MIT\alloc2.c 
+
+Firstly, they are all trying to demo the same concept - allocating page tables within another
+page table (Page directory). The result of alloc2.c and Alloc.java are very similar but at 
+first they are verify different (first few outputs). Secondly, ignore alloc.c because although
+I feel it is working correcly, the freemen is NOT initialized to end as it should (0x10da00 - 
+instead it is initialized to vm which is the pointer to the start of vm[0], which os why its 
+results are so way off). So IGNORE alloc.c! And thirdly, carry on with alloc2.c (leave 
+Alloc.java alone) to compare with the results in bochs. 
+*/
+
 int main() {
     // 10000000f * 1, which is -KERNBASE * 1
     // Can also do this:
