@@ -1,5 +1,7 @@
 *.bin
 *.out
+*.obj
+*.o
 !.gitignore
 Assembler
 usr/
