@@ -36,4 +36,29 @@ cannot open shared object file: No such file or directory
 Reported:
 https://github.com/tinysun212/swift-windows/issues/18
 
+-----------------------------------------------------
+               C R O S S  C O M P I L E R
+-----------------------------------------------------
+/cygdrive/c/Users/Alifa/Desktop/osdev/batch/asm/ch5/5.crosscompiler/instructions.txt
+
+-----------------------------------------------------
+          A P T  -  G E T  F O R  C Y G W I N
+-----------------------------------------------------
+https://www.ccammack.com/posts/install-cygwin-and-apt-cyg
+cygwin>cd /home/Alifa
+cygwin>wget rawgit.com/transcode-open/apt-cyg/master/apt-cyg
+cygwin>install apt-cyg
+cygwin>rm apt-cyg
+cygwin>apt-cyg --version
+cygwin>which apt-cyg
+cygwin>apt-cyg update
+cygwin>apt-cyg searchall meson
+cygwin>apt-cyg install meson
+
+-----------------------------------------------------
+          L X C  C O N T A I N E R S
+-----------------------------------------------------
+https://ubuntu.com/server/docs/containers-lxc
+cygwin>cd /home/Alifa
+cygwin>apt-cyg install lxc
 
